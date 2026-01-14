@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import JsBarcode from 'jsbarcode';
 import { BarcodeConfig } from '@/lib/barcodeUtils';
-import { ImageEffectsConfig } from '@/components/ImageEffects';
-import { Download, Copy, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
+import { Download, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface BarcodePreviewProps {
   config: BarcodeConfig;
-  effects: ImageEffectsConfig;
+  effects?: ImageEffectsConfig;
   isValid: boolean;
   errorMessage: string;
 }
 
-export function BarcodePreview({ config, effects, isValid, errorMessage }: BarcodePreviewProps) {
+const defaultEffects = getDefaultEffectsConfig();
+
+export function BarcodePreview({ config, effects = defaultEffects, isValid, errorMessage }: BarcodePreviewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const noiseCanvasRef = useRef<HTMLCanvasElement>(null);
