@@ -1,19 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import JsBarcode from 'jsbarcode';
 import { BarcodeConfig } from '@/lib/barcodeUtils';
-import { Download, Copy, Check, AlertCircle } from 'lucide-react';
+import { ImageEffectsConfig } from '@/components/ImageEffects';
+import { Download, Copy, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface BarcodePreviewProps {
   config: BarcodeConfig;
+  effects: ImageEffectsConfig;
   isValid: boolean;
   errorMessage: string;
 }
 
-export function BarcodePreview({ config, isValid, errorMessage }: BarcodePreviewProps) {
+export function BarcodePreview({ config, effects, isValid, errorMessage }: BarcodePreviewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const noiseCanvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
 
@@ -42,6 +45,77 @@ export function BarcodePreview({ config, isValid, errorMessage }: BarcodePreview
     }
   }, [config, isValid]);
 
+  const applyEffects = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, img: HTMLImageElement) => {
+    // Calculate scaled dimensions
+    const scaledWidth = Math.round(img.width * effects.scale);
+    const scaledHeight = Math.round(img.height * effects.scale);
+    
+    canvas.width = scaledWidth;
+    canvas.height = scaledHeight;
+    
+    ctx.save();
+    
+    // Clear canvas
+    ctx.fillStyle = config.background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Apply rotation
+    if (effects.rotation !== 0) {
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((effects.rotation * Math.PI) / 180);
+      ctx.translate(-canvas.width / 2, -canvas.height / 2);
+    }
+    
+    // Apply perspective (simple skew approximation)
+    if (effects.perspective > 0) {
+      const skewAmount = effects.perspective * 0.01;
+      ctx.transform(1, skewAmount * 0.5, -skewAmount * 0.3, 1, 0, 0);
+    }
+    
+    // Draw the image
+    ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+    
+    // Apply contrast and brightness
+    if (effects.contrast !== 1 || effects.brightness !== 0) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        // Apply contrast
+        data[i] = Math.min(255, Math.max(0, ((data[i] - 128) * effects.contrast) + 128 + effects.brightness));
+        data[i + 1] = Math.min(255, Math.max(0, ((data[i + 1] - 128) * effects.contrast) + 128 + effects.brightness));
+        data[i + 2] = Math.min(255, Math.max(0, ((data[i + 2] - 128) * effects.contrast) + 128 + effects.brightness));
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    }
+    
+    // Apply noise
+    if (effects.noise > 0) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const noiseAmount = effects.noise * 2.55; // Convert percentage to 0-255 range
+      
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * noiseAmount;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    }
+    
+    ctx.restore();
+    
+    // Apply blur as CSS filter on canvas
+    if (effects.blur > 0) {
+      ctx.filter = `blur(${effects.blur}px)`;
+      ctx.drawImage(canvas, 0, 0);
+      ctx.filter = 'none';
+    }
+  }, [effects, config.background]);
+
   const downloadBarcode = async () => {
     if (!svgRef.current || !canvasRef.current) return;
 
@@ -56,9 +130,14 @@ export function BarcodePreview({ config, isValid, errorMessage }: BarcodePreview
     const url = URL.createObjectURL(svgBlob);
 
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
+      if (effects.enableEffects) {
+        applyEffects(ctx, canvas, img);
+      } else {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      }
+      
       URL.revokeObjectURL(url);
 
       const link = document.createElement('a');
@@ -86,9 +165,14 @@ export function BarcodePreview({ config, isValid, errorMessage }: BarcodePreview
     const url = URL.createObjectURL(svgBlob);
 
     img.onload = async () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
+      if (effects.enableEffects) {
+        applyEffects(ctx, canvas, img);
+      } else {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      }
+      
       URL.revokeObjectURL(url);
 
       try {
@@ -108,6 +192,25 @@ export function BarcodePreview({ config, isValid, errorMessage }: BarcodePreview
     };
 
     img.src = url;
+  };
+
+  // Calculate preview styles for visual effect preview
+  const getPreviewStyles = () => {
+    if (!effects.enableEffects) return {};
+    
+    return {
+      transform: `
+        scale(${effects.scale}) 
+        rotate(${effects.rotation}deg)
+        perspective(1000px) 
+        rotateY(${effects.perspective * 0.5}deg)
+      `,
+      filter: `
+        contrast(${effects.contrast})
+        brightness(${1 + effects.brightness / 100})
+        blur(${effects.blur}px)
+      `,
+    };
   };
 
   return (
@@ -162,13 +265,26 @@ export function BarcodePreview({ config, isValid, errorMessage }: BarcodePreview
             <p className="text-sm">{renderError}</p>
           </div>
         ) : (
-          <div className="bg-barcode-bg p-4 rounded-lg shadow-lg glow-border">
+          <div 
+            className="bg-barcode-bg p-4 rounded-lg shadow-lg glow-border transition-all duration-300"
+            style={getPreviewStyles()}
+          >
             <svg ref={svgRef} />
           </div>
         )}
       </div>
 
+      {effects.enableEffects && (
+        <div className="mt-4 p-3 bg-terminal-bg rounded-lg">
+          <p className="text-xs font-mono terminal-text">
+            Effects Active: scale={effects.scale.toFixed(2)}x, contrast={effects.contrast.toFixed(2)}, 
+            blur={effects.blur}px, noise={effects.noise}%, rotation={effects.rotation}°
+          </p>
+        </div>
+      )}
+
       <canvas ref={canvasRef} className="hidden" />
+      <canvas ref={noiseCanvasRef} className="hidden" />
     </div>
   );
 }
