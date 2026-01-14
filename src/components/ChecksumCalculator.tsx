@@ -1,0 +1,141 @@
+import { useState } from 'react';
+import { 
+  calculateMod10, 
+  calculateMod11, 
+  calculateCode39Checksum, 
+  calculateEAN13Checksum,
+  calculateUPCChecksum 
+} from '@/lib/barcodeUtils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calculator, Copy, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
+interface ChecksumResult {
+  name: string;
+  value: string;
+  fullValue: string;
+  applicable: boolean;
+}
+
+export function ChecksumCalculator() {
+  const [input, setInput] = useState('');
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const getChecksums = (): ChecksumResult[] => {
+    if (!input.trim()) return [];
+
+    const isNumeric = /^\d+$/.test(input);
+    const cleanInput = input.toUpperCase();
+
+    const results: ChecksumResult[] = [
+      {
+        name: 'Mod 10 (Luhn)',
+        value: isNumeric ? String(calculateMod10(input)) : '-',
+        fullValue: isNumeric ? input + calculateMod10(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'Mod 11',
+        value: isNumeric ? String(calculateMod11(input)) : '-',
+        fullValue: isNumeric ? input + (calculateMod11(input) === 10 ? 'X' : calculateMod11(input)) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'CODE 39',
+        value: calculateCode39Checksum(cleanInput),
+        fullValue: cleanInput + calculateCode39Checksum(cleanInput),
+        applicable: true,
+      },
+      {
+        name: 'EAN-13',
+        value: input.length >= 12 && isNumeric ? String(calculateEAN13Checksum(input)) : '-',
+        fullValue: input.length >= 12 && isNumeric ? input.slice(0, 12) + calculateEAN13Checksum(input) : '-',
+        applicable: input.length >= 12 && isNumeric,
+      },
+      {
+        name: 'UPC-A',
+        value: input.length >= 11 && isNumeric ? String(calculateUPCChecksum(input)) : '-',
+        fullValue: input.length >= 11 && isNumeric ? input.slice(0, 11) + calculateUPCChecksum(input) : '-',
+        applicable: input.length >= 11 && isNumeric,
+      },
+    ];
+
+    return results;
+  };
+
+  const checksums = getChecksums();
+
+  const copyValue = (value: string, index: number) => {
+    navigator.clipboard.writeText(value);
+    setCopiedIndex(index);
+    toast.success('Copied to clipboard');
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <Calculator className="h-4 w-4 text-primary" />
+        <span>Checksum Calculator</span>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Input Value</Label>
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Enter value to calculate checksums..."
+          className="font-mono"
+        />
+      </div>
+
+      {checksums.length > 0 && (
+        <div className="space-y-2">
+          {checksums.map((checksum, index) => (
+            <div
+              key={checksum.name}
+              className={`flex items-center justify-between p-3 rounded-lg border ${
+                checksum.applicable 
+                  ? 'bg-card border-border' 
+                  : 'bg-muted/50 border-transparent opacity-50'
+              }`}
+            >
+              <div className="flex-1">
+                <p className="text-sm font-medium">{checksum.name}</p>
+                {checksum.applicable && (
+                  <p className="text-xs text-muted-foreground font-mono mt-1">
+                    Check: <span className="text-primary font-semibold">{checksum.value}</span>
+                    {' → '}
+                    <span className="text-foreground">{checksum.fullValue}</span>
+                  </p>
+                )}
+              </div>
+              {checksum.applicable && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyValue(checksum.fullValue, index)}
+                  className="ml-2"
+                >
+                  {copiedIndex === index ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!input.trim() && (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          Enter a value above to calculate checksums
+        </p>
+      )}
+    </div>
+  );
+}
