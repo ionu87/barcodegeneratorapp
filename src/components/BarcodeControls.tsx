@@ -1,10 +1,10 @@
-import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS } from '@/lib/barcodeUtils';
+import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, ChecksumType, getApplicableChecksums } from '@/lib/barcodeUtils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Barcode, Settings2, Palette, Ruler } from 'lucide-react';
+import { Barcode, Settings2, Palette, Ruler, Hash } from 'lucide-react';
 
 interface BarcodeControlsProps {
   config: BarcodeConfig;
@@ -15,6 +15,7 @@ interface BarcodeControlsProps {
 
 export function BarcodeControls({ config, onChange, isValid, errorMessage }: BarcodeControlsProps) {
   const selectedFormat = BARCODE_FORMATS.find(f => f.value === config.format);
+  const applicableChecksums = getApplicableChecksums(config.format);
 
   return (
     <div className="space-y-6">
@@ -26,7 +27,7 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
         </div>
         <Select
           value={config.format}
-          onValueChange={(value) => onChange({ ...config, format: value as BarcodeFormat })}
+          onValueChange={(value) => onChange({ ...config, format: value as BarcodeFormat, checksumType: 'none' })}
         >
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -65,6 +66,36 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           <p className="text-xs text-destructive">{errorMessage}</p>
         )}
       </div>
+
+      {/* Checksum */}
+      {applicableChecksums.length > 1 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Hash className="h-4 w-4 text-primary" />
+            <span>Checksum</span>
+          </div>
+          <Select
+            value={config.checksumType}
+            onValueChange={(value) => onChange({ ...config, checksumType: value as ChecksumType })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              {applicableChecksums.map((checksum) => (
+                <SelectItem key={checksum.value} value={checksum.value}>
+                  {checksum.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {config.checksumType !== 'none' 
+              ? 'Checksum will be auto-appended to the barcode value'
+              : 'No checksum will be added'}
+          </p>
+        </div>
+      )}
 
       {/* Dimensions */}
       <div className="space-y-4">

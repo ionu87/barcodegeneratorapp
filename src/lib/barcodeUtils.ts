@@ -19,6 +19,8 @@ export type BarcodeFormat =
   | 'pharmacode'
   | 'codabar';
 
+export type ChecksumType = 'none' | 'mod10' | 'mod11' | 'code39' | 'ean13' | 'upc';
+
 export interface BarcodeConfig {
   format: BarcodeFormat;
   text: string;
@@ -29,6 +31,63 @@ export interface BarcodeConfig {
   lineColor: string;
   background: string;
   margin: number;
+  checksumType: ChecksumType;
+}
+
+export function getApplicableChecksums(format: BarcodeFormat): { value: ChecksumType; label: string }[] {
+  const checksums: { value: ChecksumType; label: string }[] = [{ value: 'none', label: 'None' }];
+  
+  switch (format) {
+    case 'CODE39':
+      checksums.push({ value: 'code39', label: 'CODE 39 Check' });
+      break;
+    case 'EAN13':
+      checksums.push({ value: 'ean13', label: 'EAN-13 Check' });
+      break;
+    case 'UPC':
+      checksums.push({ value: 'upc', label: 'UPC Check' });
+      break;
+    case 'MSI':
+    case 'ITF':
+    case 'ITF14':
+    case 'CODE128':
+    case 'CODE128A':
+    case 'CODE128B':
+    case 'CODE128C':
+    case 'codabar':
+      checksums.push({ value: 'mod10', label: 'Mod 10' });
+      checksums.push({ value: 'mod11', label: 'Mod 11' });
+      break;
+  }
+  
+  return checksums;
+}
+
+export function applyChecksum(text: string, format: BarcodeFormat, checksumType: ChecksumType): string {
+  if (checksumType === 'none' || !text.trim()) return text;
+  
+  switch (checksumType) {
+    case 'mod10':
+      return text + calculateMod10(text);
+    case 'mod11': {
+      const check = calculateMod11(text);
+      return text + (check === 10 ? 'X' : check);
+    }
+    case 'code39':
+      return text + calculateCode39Checksum(text);
+    case 'ean13':
+      if (text.length === 12) {
+        return text + calculateEAN13Checksum(text);
+      }
+      return text;
+    case 'upc':
+      if (text.length === 11) {
+        return text + calculateUPCChecksum(text);
+      }
+      return text;
+    default:
+      return text;
+  }
 }
 
 export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description: string; validChars: string }[] = [
@@ -270,5 +329,6 @@ export function getDefaultConfig(): BarcodeConfig {
     lineColor: '#000000',
     background: '#FFFFFF',
     margin: 10,
+    checksumType: 'none',
   };
 }

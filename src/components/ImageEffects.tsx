@@ -1,7 +1,7 @@
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Droplets, Sun, RotateCw, ZoomIn, Waves, CircleDot } from 'lucide-react';
+import { Sparkles, Droplets, Sun, RotateCw, ZoomIn, Waves, CircleDot, Columns, GripVertical } from 'lucide-react';
 
 export interface ImageEffectsConfig {
   scale: number;
@@ -11,6 +11,8 @@ export interface ImageEffectsConfig {
   noise: number;
   rotation: number;
   perspective: number;
+  lineThickness: number;
+  lineSpacing: number;
   enableEffects: boolean;
 }
 
@@ -28,6 +30,8 @@ export function getDefaultEffectsConfig(): ImageEffectsConfig {
     noise: 0,
     rotation: 0,
     perspective: 0,
+    lineThickness: 1,
+    lineSpacing: 1,
     enableEffects: false,
   };
 }
@@ -192,6 +196,45 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
             min={0}
             max={20}
             step={1}
+            className="w-full"
+            disabled={!config.enableEffects}
+          />
+        </div>
+        {/* Line Thickness */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <div className="flex justify-between flex-1 text-sm">
+              <Label>Line Thickness</Label>
+              <span className="font-mono text-muted-foreground">{config.lineThickness.toFixed(2)}x</span>
+            </div>
+          </div>
+          <Slider
+            value={[config.lineThickness]}
+            onValueChange={([value]) => updateConfig({ lineThickness: value })}
+            min={0.5}
+            max={2}
+            step={0.1}
+            className="w-full"
+            disabled={!config.enableEffects}
+          />
+        </div>
+
+        {/* Line Spacing */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Columns className="h-4 w-4 text-muted-foreground" />
+            <div className="flex justify-between flex-1 text-sm">
+              <Label>Line Spacing</Label>
+              <span className="font-mono text-muted-foreground">{config.lineSpacing.toFixed(2)}x</span>
+            </div>
+          </div>
+          <Slider
+            value={[config.lineSpacing]}
+            onValueChange={([value]) => updateConfig({ lineSpacing: value })}
+            min={0.5}
+            max={2}
+            step={0.1}
             className="w-full"
             disabled={!config.enableEffects}
           />

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
-import { BarcodeConfig } from '@/lib/barcodeUtils';
+import { BarcodeConfig, applyChecksum } from '@/lib/barcodeUtils';
 import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
 import { Download, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,19 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
   const [copied, setCopied] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
 
+  // Compute the barcode text with checksum applied
+  const barcodeText = useMemo(() => {
+    return applyChecksum(config.text, config.format, config.checksumType);
+  }, [config.text, config.format, config.checksumType]);
+
+  // Compute effective bar width based on line thickness and spacing
+  const effectiveWidth = useMemo(() => {
+    if (effects.enableEffects) {
+      return config.width * effects.lineThickness;
+    }
+    return config.width;
+  }, [config.width, effects.enableEffects, effects.lineThickness]);
+
   useEffect(() => {
     if (!svgRef.current || !isValid || !config.text.trim()) {
       setRenderError(null);
@@ -29,9 +42,9 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     }
 
     try {
-      JsBarcode(svgRef.current, config.text, {
+      JsBarcode(svgRef.current, barcodeText, {
         format: config.format,
-        width: config.width,
+        width: effectiveWidth,
         height: config.height,
         displayValue: config.displayValue,
         fontSize: config.fontSize,
@@ -45,7 +58,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       console.error('Barcode render error:', error);
       setRenderError(error instanceof Error ? error.message : 'Failed to render barcode');
     }
-  }, [config, isValid]);
+  }, [config, isValid, barcodeText, effectiveWidth]);
 
   const applyEffects = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, img: HTMLImageElement) => {
     // Calculate scaled dimensions
@@ -74,8 +87,13 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       ctx.transform(1, skewAmount * 0.5, -skewAmount * 0.3, 1, 0, 0);
     }
     
-    // Draw the image
-    ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
+    // Apply line spacing by stretching horizontally
+    const spacingMultiplier = effects.lineSpacing;
+    const drawWidth = scaledWidth * spacingMultiplier;
+    const offsetX = (scaledWidth - drawWidth) / 2;
+    
+    // Draw the image with spacing applied
+    ctx.drawImage(img, offsetX, 0, drawWidth, scaledHeight);
     
     // Apply contrast and brightness
     if (effects.contrast !== 1 || effects.brightness !== 0) {
@@ -143,7 +161,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       URL.revokeObjectURL(url);
 
       const link = document.createElement('a');
-      link.download = `barcode-${config.format}-${config.text}.png`;
+      link.download = `barcode-${config.format}-${barcodeText}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       
@@ -203,6 +221,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     return {
       transform: `
         scale(${effects.scale}) 
+        scaleX(${effects.lineSpacing})
         rotate(${effects.rotation}deg)
         perspective(1000px) 
         rotateY(${effects.perspective * 0.5}deg)
@@ -214,6 +233,11 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       `,
     };
   };
+
+  // Show checksum info if applied
+  const checksumInfo = config.checksumType !== 'none' && config.text !== barcodeText 
+    ? `Value with checksum: ${barcodeText}`
+    : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -276,11 +300,18 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         )}
       </div>
 
+      {checksumInfo && (
+        <div className="mt-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
+          <p className="text-xs font-mono text-primary">{checksumInfo}</p>
+        </div>
+      )}
+
       {effects.enableEffects && (
         <div className="mt-4 p-3 bg-terminal-bg rounded-lg">
           <p className="text-xs font-mono terminal-text">
             Effects Active: scale={effects.scale.toFixed(2)}x, contrast={effects.contrast.toFixed(2)}, 
-            blur={effects.blur}px, noise={effects.noise}%, rotation={effects.rotation}°
+            blur={effects.blur}px, noise={effects.noise}%, rotation={effects.rotation}°, 
+            thickness={effects.lineThickness.toFixed(2)}x, spacing={effects.lineSpacing.toFixed(2)}x
           </p>
         </div>
       )}
