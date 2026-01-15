@@ -1,14 +1,19 @@
 // Barcode utility functions
 
 export type BarcodeFormat = 
+  // 1D Barcodes (JsBarcode)
   | 'CODE39'
+  | 'CODE93'
   | 'CODE128'
   | 'CODE128A'
   | 'CODE128B'
   | 'CODE128C'
   | 'EAN13'
   | 'EAN8'
+  | 'EAN5'
+  | 'EAN2'
   | 'UPC'
+  | 'UPCE'
   | 'ITF14'
   | 'ITF'
   | 'MSI'
@@ -17,7 +22,17 @@ export type BarcodeFormat =
   | 'MSI1010'
   | 'MSI1110'
   | 'pharmacode'
-  | 'codabar';
+  | 'codabar'
+  // 2D Barcodes (bwip-js)
+  | 'qrcode'
+  | 'azteccode'
+  | 'datamatrix'
+  | 'pdf417';
+
+// Helper to check if format is 2D
+export function is2DBarcode(format: BarcodeFormat): boolean {
+  return ['qrcode', 'azteccode', 'datamatrix', 'pdf417'].includes(format);
+}
 
 export type ChecksumType = 
   | 'none' 
@@ -141,96 +156,169 @@ export function applyChecksum(text: string, format: BarcodeFormat, checksumType:
   }
 }
 
-export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description: string; validChars: string }[] = [
+export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description: string; validChars: string; category: '1D' | '2D' }[] = [
+  // 1D Barcodes
   { 
     value: 'CODE39', 
     label: 'CODE 39', 
     description: 'Alphanumeric, widely used in industrial applications',
-    validChars: 'A-Z, 0-9, -, ., $, /, +, %, SPACE'
+    validChars: 'A-Z, 0-9, -, ., $, /, +, %, SPACE',
+    category: '1D'
+  },
+  { 
+    value: 'CODE93', 
+    label: 'CODE 93', 
+    description: 'Higher density than CODE 39, full ASCII support',
+    validChars: 'All ASCII characters',
+    category: '1D'
   },
   { 
     value: 'CODE128', 
     label: 'CODE 128', 
     description: 'High-density, supports full ASCII',
-    validChars: 'All ASCII characters (0-127)'
+    validChars: 'All ASCII characters (0-127)',
+    category: '1D'
   },
   { 
     value: 'CODE128A', 
     label: 'CODE 128A', 
     description: 'Uppercase and control characters',
-    validChars: 'A-Z, 0-9, control chars'
+    validChars: 'A-Z, 0-9, control chars',
+    category: '1D'
   },
   { 
     value: 'CODE128B', 
     label: 'CODE 128B', 
     description: 'Full ASCII text',
-    validChars: 'All printable ASCII'
+    validChars: 'All printable ASCII',
+    category: '1D'
   },
   { 
     value: 'CODE128C', 
     label: 'CODE 128C', 
     description: 'Numeric only, double density',
-    validChars: '0-9 (even length)'
+    validChars: '0-9 (even length)',
+    category: '1D'
   },
   { 
     value: 'EAN13', 
     label: 'EAN-13', 
     description: 'European Article Number, retail products',
-    validChars: '12 or 13 digits'
+    validChars: '12 or 13 digits',
+    category: '1D'
   },
   { 
     value: 'EAN8', 
     label: 'EAN-8', 
     description: 'Short version of EAN-13',
-    validChars: '7 or 8 digits'
+    validChars: '7 or 8 digits',
+    category: '1D'
+  },
+  { 
+    value: 'EAN5', 
+    label: 'EAN-5', 
+    description: 'UPC/EAN supplemental 5-digit add-on',
+    validChars: '5 digits',
+    category: '1D'
+  },
+  { 
+    value: 'EAN2', 
+    label: 'EAN-2', 
+    description: 'UPC/EAN supplemental 2-digit add-on',
+    validChars: '2 digits',
+    category: '1D'
   },
   { 
     value: 'UPC', 
     label: 'UPC-A', 
     description: 'Universal Product Code, US retail',
-    validChars: '11 or 12 digits'
+    validChars: '11 or 12 digits',
+    category: '1D'
+  },
+  { 
+    value: 'UPCE', 
+    label: 'UPC-E', 
+    description: 'Compressed UPC for small packages',
+    validChars: '6, 7, or 8 digits',
+    category: '1D'
   },
   { 
     value: 'ITF14', 
     label: 'ITF-14', 
     description: 'Interleaved 2 of 5, shipping containers',
-    validChars: '13 or 14 digits'
+    validChars: '13 or 14 digits',
+    category: '1D'
   },
   { 
     value: 'ITF', 
     label: 'ITF', 
     description: 'Interleaved 2 of 5',
-    validChars: 'Even number of digits'
+    validChars: 'Even number of digits',
+    category: '1D'
   },
   { 
     value: 'MSI', 
     label: 'MSI', 
     description: 'Modified Plessey, inventory control',
-    validChars: '0-9'
+    validChars: '0-9',
+    category: '1D'
   },
   { 
     value: 'MSI10', 
     label: 'MSI Mod 10', 
     description: 'MSI with Mod 10 check digit',
-    validChars: '0-9'
+    validChars: '0-9',
+    category: '1D'
   },
   { 
     value: 'MSI11', 
     label: 'MSI Mod 11', 
     description: 'MSI with Mod 11 check digit',
-    validChars: '0-9'
+    validChars: '0-9',
+    category: '1D'
   },
   { 
     value: 'pharmacode', 
     label: 'Pharmacode', 
     description: 'Pharmaceutical packaging',
-    validChars: 'Number 3-131070'
+    validChars: 'Number 3-131070',
+    category: '1D'
   },
   { 
     value: 'codabar', 
     label: 'Codabar', 
     description: 'Libraries, blood banks, shipping',
-    validChars: '0-9, -, $, :, /, ., +'
+    validChars: '0-9, -, $, :, /, ., +',
+    category: '1D'
+  },
+  // 2D Barcodes
+  { 
+    value: 'qrcode', 
+    label: 'QR Code', 
+    description: 'Quick Response code, widely used for URLs and data',
+    validChars: 'All characters (alphanumeric, binary, Kanji)',
+    category: '2D'
+  },
+  { 
+    value: 'azteccode', 
+    label: 'Aztec Code', 
+    description: 'High-density 2D barcode, used in transport tickets',
+    validChars: 'All ASCII characters',
+    category: '2D'
+  },
+  { 
+    value: 'datamatrix', 
+    label: 'Data Matrix', 
+    description: '2D matrix barcode for small items',
+    validChars: 'All ASCII characters',
+    category: '2D'
+  },
+  { 
+    value: 'pdf417', 
+    label: 'PDF417', 
+    description: 'Stacked linear barcode, used in IDs and shipping',
+    validChars: 'All ASCII characters',
+    category: '2D'
   },
 ];
 
@@ -485,6 +573,9 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
         return { valid: false, message: 'CODE 39 only supports A-Z, 0-9, -, ., $, /, +, %, and space' };
       }
       break;
+    case 'CODE93':
+      // CODE93 supports full ASCII
+      break;
     case 'EAN13':
       if (!/^\d{12,13}$/.test(text)) {
         return { valid: false, message: 'EAN-13 requires exactly 12 or 13 digits' };
@@ -495,9 +586,24 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
         return { valid: false, message: 'EAN-8 requires exactly 7 or 8 digits' };
       }
       break;
+    case 'EAN5':
+      if (!/^\d{5}$/.test(text)) {
+        return { valid: false, message: 'EAN-5 requires exactly 5 digits' };
+      }
+      break;
+    case 'EAN2':
+      if (!/^\d{2}$/.test(text)) {
+        return { valid: false, message: 'EAN-2 requires exactly 2 digits' };
+      }
+      break;
     case 'UPC':
       if (!/^\d{11,12}$/.test(text)) {
         return { valid: false, message: 'UPC-A requires exactly 11 or 12 digits' };
+      }
+      break;
+    case 'UPCE':
+      if (!/^\d{6,8}$/.test(text)) {
+        return { valid: false, message: 'UPC-E requires 6, 7, or 8 digits' };
       }
       break;
     case 'ITF14':
@@ -529,6 +635,13 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
       if (!/^\d+$/.test(text)) {
         return { valid: false, message: 'MSI formats only support digits' };
       }
+      break;
+    // 2D barcodes accept most text
+    case 'qrcode':
+    case 'azteccode':
+    case 'datamatrix':
+    case 'pdf417':
+      // These formats support various character sets
       break;
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
-import { BarcodeConfig, applyChecksum } from '@/lib/barcodeUtils';
+import bwipjs from 'bwip-js';
+import { BarcodeConfig, applyChecksum, is2DBarcode } from '@/lib/barcodeUtils';
 import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
 import { Download, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,12 +16,27 @@ interface BarcodePreviewProps {
 
 const defaultEffects = getDefaultEffectsConfig();
 
+// Map our format names to bwip-js format names
+function getBwipFormat(format: string): string {
+  const formatMap: Record<string, string> = {
+    'qrcode': 'qrcode',
+    'azteccode': 'azteccode',
+    'datamatrix': 'datamatrix',
+    'pdf417': 'pdf417',
+  };
+  return formatMap[format] || format;
+}
+
 export function BarcodePreview({ config, effects = defaultEffects, isValid, errorMessage }: BarcodePreviewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const noiseCanvasRef = useRef<HTMLCanvasElement>(null);
+  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [barcodeDataUrl, setBarcodeDataUrl] = useState<string | null>(null);
+
+  const is2D = is2DBarcode(config.format);
 
   // Compute the barcode text with checksum applied
   const barcodeText = useMemo(() => {
@@ -35,8 +51,9 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     return config.width;
   }, [config.width, effects.enableEffects, effects.lineThickness]);
 
+  // Render 1D barcodes with JsBarcode
   useEffect(() => {
-    if (!svgRef.current || !isValid || !config.text.trim()) {
+    if (is2D || !svgRef.current || !isValid || !config.text.trim()) {
       setRenderError(null);
       return;
     }
@@ -58,7 +75,37 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       console.error('Barcode render error:', error);
       setRenderError(error instanceof Error ? error.message : 'Failed to render barcode');
     }
-  }, [config, isValid, barcodeText, effectiveWidth]);
+  }, [config, isValid, barcodeText, effectiveWidth, is2D]);
+
+  // Render 2D barcodes with bwip-js
+  useEffect(() => {
+    if (!is2D || !barcodeCanvasRef.current || !isValid || !config.text.trim()) {
+      setBarcodeDataUrl(null);
+      return;
+    }
+
+    try {
+      bwipjs.toCanvas(barcodeCanvasRef.current, {
+        bcid: getBwipFormat(config.format),
+        text: barcodeText,
+        scale: effectiveWidth,
+        height: config.format === 'pdf417' ? Math.floor(config.height / 10) : config.height / 5,
+        width: config.format === 'pdf417' ? Math.floor(config.height / 3) : undefined,
+        includetext: config.displayValue,
+        textsize: config.fontSize,
+        textxalign: 'center',
+        backgroundcolor: config.background.replace('#', ''),
+        barcolor: config.lineColor.replace('#', ''),
+        padding: config.margin,
+      });
+      setBarcodeDataUrl(barcodeCanvasRef.current.toDataURL('image/png'));
+      setRenderError(null);
+    } catch (error) {
+      console.error('2D Barcode render error:', error);
+      setRenderError(error instanceof Error ? error.message : 'Failed to render 2D barcode');
+      setBarcodeDataUrl(null);
+    }
+  }, [config, isValid, barcodeText, effectiveWidth, is2D]);
 
   const applyEffects = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, img: HTMLImageElement) => {
     // Calculate scaled dimensions
@@ -137,54 +184,72 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
   }, [effects, config.background]);
 
   const downloadBarcode = async () => {
-    if (!svgRef.current || !canvasRef.current) return;
-
-    const svg = svgRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      if (effects.enableEffects) {
-        applyEffects(ctx, canvas, img);
-      } else {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-      }
+    if (is2D) {
+      // For 2D barcodes, use the barcodeCanvasRef directly
+      if (!barcodeCanvasRef.current) return;
       
-      URL.revokeObjectURL(url);
+      const sourceCanvas = barcodeCanvasRef.current;
+      const img = new Image();
+      img.onload = () => {
+        if (effects.enableEffects) {
+          applyEffects(ctx, canvas, img);
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+        }
 
-      const link = document.createElement('a');
-      link.download = `barcode-${config.format}-${barcodeText}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+        const link = document.createElement('a');
+        link.download = `barcode-${config.format}-${barcodeText}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        toast.success('Barcode downloaded successfully');
+      };
+      img.src = sourceCanvas.toDataURL('image/png');
+    } else {
+      // For 1D barcodes, use the SVG
+      if (!svgRef.current) return;
       
-      toast.success('Barcode downloaded successfully');
-    };
+      const svg = svgRef.current;
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
 
-    img.src = url;
+      img.onload = () => {
+        if (effects.enableEffects) {
+          applyEffects(ctx, canvas, img);
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+        }
+        
+        URL.revokeObjectURL(url);
+
+        const link = document.createElement('a');
+        link.download = `barcode-${config.format}-${barcodeText}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        toast.success('Barcode downloaded successfully');
+      };
+
+      img.src = url;
+    }
   };
 
   const copyToClipboard = async () => {
-    if (!svgRef.current || !canvasRef.current) return;
-
-    const svg = svgRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = async () => {
+    const processImage = (img: HTMLImageElement, cleanup?: () => void) => {
       if (effects.enableEffects) {
         applyEffects(ctx, canvas, img);
       } else {
@@ -193,7 +258,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         ctx.drawImage(img, 0, 0);
       }
       
-      URL.revokeObjectURL(url);
+      cleanup?.();
 
       try {
         canvas.toBlob(async (blob) => {
@@ -211,7 +276,24 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       }
     };
 
-    img.src = url;
+    if (is2D) {
+      if (!barcodeCanvasRef.current) return;
+      
+      const img = new Image();
+      img.onload = () => processImage(img);
+      img.src = barcodeCanvasRef.current.toDataURL('image/png');
+    } else {
+      if (!svgRef.current) return;
+      
+      const svg = svgRef.current;
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => processImage(img, () => URL.revokeObjectURL(url));
+      img.src = url;
+    }
   };
 
   // Calculate preview styles for visual effect preview
@@ -295,7 +377,15 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
             className="bg-barcode-bg p-4 rounded-lg shadow-lg glow-border transition-all duration-300"
             style={getPreviewStyles()}
           >
-            <svg ref={svgRef} />
+            {is2D ? (
+              barcodeDataUrl ? (
+                <img src={barcodeDataUrl} alt="2D Barcode" className="max-w-full" />
+              ) : (
+                <div className="text-muted-foreground">Loading...</div>
+              )
+            ) : (
+              <svg ref={svgRef} />
+            )}
           </div>
         )}
       </div>
@@ -318,6 +408,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
 
       <canvas ref={canvasRef} className="hidden" />
       <canvas ref={noiseCanvasRef} className="hidden" />
+      <canvas ref={barcodeCanvasRef} className="hidden" />
     </div>
   );
 }
