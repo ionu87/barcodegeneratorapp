@@ -19,7 +19,23 @@ export type BarcodeFormat =
   | 'pharmacode'
   | 'codabar';
 
-export type ChecksumType = 'none' | 'mod10' | 'mod11' | 'code39' | 'ean13' | 'upc';
+export type ChecksumType = 
+  | 'none' 
+  | 'mod10' 
+  | 'mod11' 
+  | 'mod43' 
+  | 'mod16' 
+  | 'japanNW7' 
+  | 'jrc' 
+  | 'luhn' 
+  | 'mod11PZN' 
+  | 'mod11A' 
+  | 'mod10Weight2' 
+  | 'mod10Weight3' 
+  | '7CheckDR' 
+  | 'mod16Japan'
+  | 'ean13' 
+  | 'upc';
 
 export interface BarcodeConfig {
   format: BarcodeFormat;
@@ -39,24 +55,39 @@ export function getApplicableChecksums(format: BarcodeFormat): { value: Checksum
   
   switch (format) {
     case 'CODE39':
-      checksums.push({ value: 'code39', label: 'CODE 39 Check' });
+      checksums.push({ value: 'mod43', label: 'Modulo 43' });
+      break;
+    case 'codabar':
+      checksums.push({ value: 'mod16', label: 'Modulo 16' });
+      checksums.push({ value: 'japanNW7', label: 'Japan NW-7' });
+      checksums.push({ value: 'jrc', label: 'JRC' });
+      checksums.push({ value: 'luhn', label: 'Luhn' });
+      checksums.push({ value: 'mod11PZN', label: 'Modulo 11 PZN' });
+      checksums.push({ value: 'mod11A', label: 'Modulo 11-A' });
+      checksums.push({ value: 'mod10Weight2', label: 'Modulo 10 Weight 2' });
+      checksums.push({ value: 'mod10Weight3', label: 'Modulo 10 Weight 3' });
+      checksums.push({ value: '7CheckDR', label: '7 Check DR' });
+      checksums.push({ value: 'mod16Japan', label: 'Modulo 16 Japan' });
       break;
     case 'EAN13':
       checksums.push({ value: 'ean13', label: 'EAN-13 Check' });
       break;
     case 'UPC':
-      checksums.push({ value: 'upc', label: 'UPC Check' });
+      checksums.push({ value: 'upc', label: 'UPC-A Modulo 10' });
       break;
-    case 'MSI':
     case 'ITF':
     case 'ITF14':
+      checksums.push({ value: 'mod10', label: 'Modulo 10' });
+      break;
+    case 'MSI':
+      checksums.push({ value: 'mod10', label: 'Modulo 10' });
+      checksums.push({ value: 'mod11', label: 'Modulo 11' });
+      break;
     case 'CODE128':
     case 'CODE128A':
     case 'CODE128B':
     case 'CODE128C':
-    case 'codabar':
-      checksums.push({ value: 'mod10', label: 'Mod 10' });
-      checksums.push({ value: 'mod11', label: 'Mod 11' });
+      checksums.push({ value: 'mod10', label: 'Modulo 10' });
       break;
   }
   
@@ -73,8 +104,28 @@ export function applyChecksum(text: string, format: BarcodeFormat, checksumType:
       const check = calculateMod11(text);
       return text + (check === 10 ? 'X' : check);
     }
-    case 'code39':
-      return text + calculateCode39Checksum(text);
+    case 'mod43':
+      return text + calculateMod43Checksum(text);
+    case 'mod16':
+      return text + calculateMod16Checksum(text);
+    case 'japanNW7':
+      return text + calculateJapanNW7Checksum(text);
+    case 'jrc':
+      return text + calculateJRCChecksum(text);
+    case 'luhn':
+      return text + calculateLuhnChecksum(text);
+    case 'mod11PZN':
+      return text + calculateMod11PZNChecksum(text);
+    case 'mod11A':
+      return text + calculateMod11AChecksum(text);
+    case 'mod10Weight2':
+      return text + calculateMod10Weight2Checksum(text);
+    case 'mod10Weight3':
+      return text + calculateMod10Weight3Checksum(text);
+    case '7CheckDR':
+      return text + calculate7CheckDRChecksum(text);
+    case 'mod16Japan':
+      return text + calculateMod16JapanChecksum(text);
     case 'ean13':
       if (text.length === 12) {
         return text + calculateEAN13Checksum(text);
@@ -184,6 +235,8 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
 ];
 
 // Calculate various checksums
+
+// Standard Luhn algorithm (Mod 10 with doubling)
 export function calculateMod10(input: string): number {
   const digits = input.replace(/\D/g, '').split('').map(Number);
   let sum = 0;
@@ -202,6 +255,7 @@ export function calculateMod10(input: string): number {
   return (10 - (sum % 10)) % 10;
 }
 
+// Mod 11 checksum with weights 2-7
 export function calculateMod11(input: string): number {
   const digits = input.replace(/\D/g, '').split('').map(Number).reverse();
   const weights = [2, 3, 4, 5, 6, 7];
@@ -215,7 +269,8 @@ export function calculateMod11(input: string): number {
   return remainder === 0 ? 0 : 11 - remainder;
 }
 
-export function calculateCode39Checksum(input: string): string {
+// Modulo 43 for CODE39 and CODE39 Full ASCII
+export function calculateMod43Checksum(input: string): string {
   const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%';
   let sum = 0;
   
@@ -229,6 +284,167 @@ export function calculateCode39Checksum(input: string): string {
   return chars[sum % 43];
 }
 
+// Legacy CODE39 checksum (same as Mod43)
+export function calculateCode39Checksum(input: string): string {
+  return calculateMod43Checksum(input);
+}
+
+// Modulo 16 for Codabar
+export function calculateMod16Checksum(input: string): string {
+  const codabarChars = '0123456789-$:/.+';
+  let sum = 0;
+  
+  for (const char of input) {
+    const index = codabarChars.indexOf(char);
+    if (index !== -1) {
+      sum += index;
+    }
+  }
+  
+  const check = sum % 16;
+  return codabarChars[check];
+}
+
+// Japan NW-7 checksum for Codabar
+export function calculateJapanNW7Checksum(input: string): string {
+  const codabarChars = '0123456789-$:/.+ABCD';
+  let sum = 0;
+  
+  for (const char of input.toUpperCase()) {
+    const index = codabarChars.indexOf(char);
+    if (index !== -1) {
+      sum += index;
+    }
+  }
+  
+  const check = (16 - (sum % 16)) % 16;
+  return codabarChars[check];
+}
+
+// JRC (Japanese Railway) checksum
+export function calculateJRCChecksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number);
+  let sum = 0;
+  
+  for (let i = 0; i < digits.length; i++) {
+    sum += digits[i] * (i % 2 === 0 ? 1 : 2);
+  }
+  
+  const check = (10 - (sum % 10)) % 10;
+  return String(check);
+}
+
+// Luhn algorithm (same as standard credit card check)
+export function calculateLuhnChecksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number);
+  let sum = 0;
+  
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = digits[i];
+    if ((digits.length - i) % 2 === 0) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+  }
+  
+  const check = (10 - (sum % 10)) % 10;
+  return String(check);
+}
+
+// Modulo 11 PZN (Pharmazentralnummer) checksum
+export function calculateMod11PZNChecksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number);
+  let sum = 0;
+  
+  for (let i = 0; i < digits.length; i++) {
+    sum += digits[i] * (i + 1);
+  }
+  
+  const check = sum % 11;
+  return check === 10 ? '0' : String(check);
+}
+
+// Modulo 11-A checksum
+export function calculateMod11AChecksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number).reverse();
+  let sum = 0;
+  
+  for (let i = 0; i < digits.length; i++) {
+    sum += digits[i] * (i + 2);
+  }
+  
+  const remainder = sum % 11;
+  const check = remainder === 0 ? 0 : 11 - remainder;
+  return check === 10 ? 'X' : String(check);
+}
+
+// Modulo 10 with weight 2 (alternating 1,2)
+export function calculateMod10Weight2Checksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number);
+  let sum = 0;
+  
+  for (let i = 0; i < digits.length; i++) {
+    const weight = i % 2 === 0 ? 1 : 2;
+    let weighted = digits[i] * weight;
+    if (weighted > 9) weighted -= 9;
+    sum += weighted;
+  }
+  
+  const check = (10 - (sum % 10)) % 10;
+  return String(check);
+}
+
+// Modulo 10 with weight 3 (alternating 1,3)
+export function calculateMod10Weight3Checksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number);
+  let sum = 0;
+  
+  for (let i = 0; i < digits.length; i++) {
+    const weight = i % 2 === 0 ? 1 : 3;
+    sum += digits[i] * weight;
+  }
+  
+  const check = (10 - (sum % 10)) % 10;
+  return String(check);
+}
+
+// 7 Check DR (Digital Root based)
+export function calculate7CheckDRChecksum(input: string): string {
+  const digits = input.replace(/\D/g, '').split('').map(Number);
+  let sum = 0;
+  
+  for (const digit of digits) {
+    sum += digit;
+  }
+  
+  // Digital root calculation
+  let dr = sum;
+  while (dr > 9) {
+    dr = String(dr).split('').map(Number).reduce((a, b) => a + b, 0);
+  }
+  
+  const check = (7 - (dr % 7)) % 7;
+  return String(check);
+}
+
+// Modulo 16 Japan variant
+export function calculateMod16JapanChecksum(input: string): string {
+  const codabarChars = '0123456789-$:/.+ABCDTN*E';
+  let sum = 0;
+  
+  for (const char of input.toUpperCase()) {
+    const index = codabarChars.indexOf(char);
+    if (index !== -1) {
+      sum += index;
+    }
+  }
+  
+  const check = sum % 16;
+  return codabarChars[check];
+}
+
+// EAN-13 checksum
 export function calculateEAN13Checksum(input: string): number {
   const digits = input.replace(/\D/g, '').slice(0, 12).split('').map(Number);
   let sum = 0;
@@ -240,6 +456,7 @@ export function calculateEAN13Checksum(input: string): number {
   return (10 - (sum % 10)) % 10;
 }
 
+// UPC-A checksum (Modulo 10)
 export function calculateUPCChecksum(input: string): number {
   const digits = input.replace(/\D/g, '').slice(0, 11).split('').map(Number);
   let oddSum = 0;

@@ -2,7 +2,17 @@ import { useState } from 'react';
 import { 
   calculateMod10, 
   calculateMod11, 
-  calculateCode39Checksum, 
+  calculateMod43Checksum,
+  calculateMod16Checksum,
+  calculateJapanNW7Checksum,
+  calculateJRCChecksum,
+  calculateLuhnChecksum,
+  calculateMod11PZNChecksum,
+  calculateMod11AChecksum,
+  calculateMod10Weight2Checksum,
+  calculateMod10Weight3Checksum,
+  calculate7CheckDRChecksum,
+  calculateMod16JapanChecksum,
   calculateEAN13Checksum,
   calculateUPCChecksum 
 } from '@/lib/barcodeUtils';
@@ -31,21 +41,75 @@ export function ChecksumCalculator() {
 
     const results: ChecksumResult[] = [
       {
-        name: 'Mod 10 (Luhn)',
-        value: isNumeric ? String(calculateMod10(input)) : '-',
-        fullValue: isNumeric ? input + calculateMod10(input) : '-',
+        name: 'Luhn (Mod 10)',
+        value: isNumeric ? calculateLuhnChecksum(input) : '-',
+        fullValue: isNumeric ? input + calculateLuhnChecksum(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'Mod 10 Weight 2',
+        value: isNumeric ? calculateMod10Weight2Checksum(input) : '-',
+        fullValue: isNumeric ? input + calculateMod10Weight2Checksum(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'Mod 10 Weight 3',
+        value: isNumeric ? calculateMod10Weight3Checksum(input) : '-',
+        fullValue: isNumeric ? input + calculateMod10Weight3Checksum(input) : '-',
         applicable: isNumeric,
       },
       {
         name: 'Mod 11',
-        value: isNumeric ? String(calculateMod11(input)) : '-',
+        value: isNumeric ? String(calculateMod11(input) === 10 ? 'X' : calculateMod11(input)) : '-',
         fullValue: isNumeric ? input + (calculateMod11(input) === 10 ? 'X' : calculateMod11(input)) : '-',
         applicable: isNumeric,
       },
       {
-        name: 'CODE 39',
-        value: calculateCode39Checksum(cleanInput),
-        fullValue: cleanInput + calculateCode39Checksum(cleanInput),
+        name: 'Mod 11-A',
+        value: isNumeric ? calculateMod11AChecksum(input) : '-',
+        fullValue: isNumeric ? input + calculateMod11AChecksum(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'Mod 11 PZN',
+        value: isNumeric ? calculateMod11PZNChecksum(input) : '-',
+        fullValue: isNumeric ? input + calculateMod11PZNChecksum(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'Modulo 43 (CODE 39)',
+        value: calculateMod43Checksum(cleanInput),
+        fullValue: cleanInput + calculateMod43Checksum(cleanInput),
+        applicable: true,
+      },
+      {
+        name: 'Modulo 16 (Codabar)',
+        value: calculateMod16Checksum(input),
+        fullValue: input + calculateMod16Checksum(input),
+        applicable: true,
+      },
+      {
+        name: 'Japan NW-7',
+        value: calculateJapanNW7Checksum(input),
+        fullValue: input + calculateJapanNW7Checksum(input),
+        applicable: true,
+      },
+      {
+        name: 'JRC',
+        value: isNumeric ? calculateJRCChecksum(input) : '-',
+        fullValue: isNumeric ? input + calculateJRCChecksum(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: '7 Check DR',
+        value: isNumeric ? calculate7CheckDRChecksum(input) : '-',
+        fullValue: isNumeric ? input + calculate7CheckDRChecksum(input) : '-',
+        applicable: isNumeric,
+      },
+      {
+        name: 'Mod 16 Japan',
+        value: calculateMod16JapanChecksum(input),
+        fullValue: input + calculateMod16JapanChecksum(input),
         applicable: true,
       },
       {
