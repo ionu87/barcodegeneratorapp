@@ -17,6 +17,9 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
   const selectedFormat = BARCODE_FORMATS.find(f => f.value === config.format);
   const applicableChecksums = getApplicableChecksums(config.format);
 
+  const formats1D = BARCODE_FORMATS.filter(f => f.category === '1D');
+  const formats2D = BARCODE_FORMATS.filter(f => f.category === '2D');
+
   return (
     <div className="space-y-6">
       {/* Format Selection */}
@@ -32,8 +35,17 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px] bg-popover">
-            {BARCODE_FORMATS.map((format) => (
+          <SelectContent className="max-h-[400px] bg-popover">
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">1D Barcodes</div>
+            {formats1D.map((format) => (
+              <SelectItem key={format.value} value={format.value}>
+                <div className="flex flex-col">
+                  <span className="font-medium">{format.label}</span>
+                </div>
+              </SelectItem>
+            ))}
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">2D Barcodes</div>
+            {formats2D.map((format) => (
               <SelectItem key={format.value} value={format.value}>
                 <div className="flex flex-col">
                   <span className="font-medium">{format.label}</span>
@@ -44,7 +56,12 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
         </Select>
         {selectedFormat && (
           <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md">
-            <p className="font-medium">{selectedFormat.description}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${selectedFormat.category === '2D' ? 'bg-primary/20 text-primary' : 'bg-muted-foreground/20'}`}>
+                {selectedFormat.category}
+              </span>
+              <p className="font-medium">{selectedFormat.description}</p>
+            </div>
             <p className="mt-1 font-mono text-[10px]">Valid: {selectedFormat.validChars}</p>
           </div>
         )}
