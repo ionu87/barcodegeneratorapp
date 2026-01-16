@@ -2,86 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-/* Industrial-tech design system for barcode generator */
+/* Modern sleek design system for barcode generator */
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 25% 10%;
+    --background: 0 0% 98%;
+    --foreground: 240 10% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card-foreground: 240 10% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
+    --popover-foreground: 240 10% 4%;
 
-    --primary: 142 72% 42%;
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 90%;
-    --secondary-foreground: 220 25% 15%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
 
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 45 100% 50%;
-    --accent-foreground: 220 25% 10%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 85%;
-    --input: 220 14% 85%;
-    --ring: 142 72% 42%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 262 83% 58%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     /* Custom tokens */
     --barcode-bg: 0 0% 100%;
-    --barcode-lines: 220 25% 10%;
-    --scanner-glow: 142 72% 42%;
-    --grid-color: 220 14% 92%;
-    --terminal-bg: 220 20% 12%;
-    --terminal-text: 142 72% 55%;
+    --barcode-lines: 240 10% 4%;
+    --scanner-glow: 262 83% 58%;
+    --grid-color: 240 5% 94%;
+    --terminal-bg: 240 10% 4%;
+    --terminal-text: 262 83% 70%;
+    --glass-bg: 0 0% 100% / 0.8;
+    --glow-primary: 262 83% 58%;
   }
 
   .dark {
-    --background: 220 20% 8%;
-    --foreground: 220 14% 95%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
 
-    --card: 220 20% 12%;
-    --card-foreground: 220 14% 95%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 220 20% 12%;
-    --popover-foreground: 220 14% 95%;
+    --popover: 240 10% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 142 72% 50%;
-    --primary-foreground: 220 25% 10%;
+    --primary: 262 83% 65%;
+    --primary-foreground: 240 10% 4%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 220 14% 90%;
+    --secondary: 240 6% 14%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 20% 15%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 240 6% 14%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 45 100% 55%;
-    --accent-foreground: 220 25% 10%;
+    --accent: 262 83% 65%;
+    --accent-foreground: 240 10% 4%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 142 72% 50%;
+    --border: 240 6% 18%;
+    --input: 240 6% 18%;
+    --ring: 262 83% 65%;
 
     --barcode-bg: 0 0% 100%;
-    --barcode-lines: 220 25% 10%;
-    --scanner-glow: 142 72% 50%;
-    --grid-color: 220 20% 15%;
-    --terminal-bg: 220 25% 6%;
-    --terminal-text: 142 72% 60%;
+    --barcode-lines: 240 10% 4%;
+    --scanner-glow: 262 83% 65%;
+    --grid-color: 240 6% 8%;
+    --terminal-bg: 240 10% 6%;
+    --terminal-text: 262 83% 75%;
+    --glass-bg: 240 10% 8% / 0.9;
+    --glow-primary: 262 83% 65%;
   }
 }
 
@@ -92,7 +96,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
   }
 
   .font-mono {
@@ -102,8 +106,9 @@
 
 @layer components {
   .scanner-line {
-    animation: scan 2s ease-in-out infinite;
-    box-shadow: 0 0 20px hsl(var(--scanner-glow)), 0 0 40px hsl(var(--scanner-glow) / 0.5);
+    animation: scan 2.5s ease-in-out infinite;
+    background: linear-gradient(90deg, transparent, hsl(var(--scanner-glow)), transparent);
+    box-shadow: 0 0 30px hsl(var(--scanner-glow)), 0 0 60px hsl(var(--scanner-glow) / 0.4);
   }
 
   @keyframes scan {
@@ -115,17 +120,58 @@
 
   .grid-pattern {
     background-image: 
-      linear-gradient(hsl(var(--grid-color)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--grid-color)) 1px, transparent 1px);
-    background-size: 20px 20px;
+      radial-gradient(hsl(var(--grid-color)) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .glass-card {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   .glow-border {
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.3), 0 0 20px hsl(var(--primary) / 0.1);
+    box-shadow: 
+      0 0 0 1px hsl(var(--primary) / 0.2),
+      0 0 30px hsl(var(--primary) / 0.15),
+      0 20px 40px -20px hsl(var(--primary) / 0.2);
   }
 
   .terminal-text {
     color: hsl(var(--terminal-text));
-    text-shadow: 0 0 10px hsl(var(--terminal-text) / 0.5);
+    text-shadow: 0 0 20px hsl(var(--terminal-text) / 0.6);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .feature-card {
+    @apply relative overflow-hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), transparent);
+  }
+
+  .feature-card:hover::before {
+    @apply opacity-100;
+  }
+
+  .modern-input {
+    @apply transition-all duration-200;
+  }
+
+  .modern-input:focus {
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 0 20px hsl(var(--primary) / 0.1);
+  }
+
+  .tab-glow[data-state="active"] {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
   }
 }
