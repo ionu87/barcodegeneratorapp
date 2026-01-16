@@ -17,7 +17,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 4%;
 
-    --primary: 262 83% 58%;
+    --primary: 152 76% 42%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 5% 96%;
@@ -26,7 +26,7 @@
     --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
 
-    --accent: 262 83% 58%;
+    --accent: 152 76% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -34,19 +34,19 @@
 
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 262 83% 58%;
+    --ring: 152 76% 42%;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
     --barcode-bg: 0 0% 100%;
     --barcode-lines: 240 10% 4%;
-    --scanner-glow: 262 83% 58%;
+    --scanner-glow: 152 76% 42%;
     --grid-color: 240 5% 94%;
     --terminal-bg: 240 10% 4%;
-    --terminal-text: 262 83% 70%;
+    --terminal-text: 152 76% 55%;
     --glass-bg: 0 0% 100% / 0.8;
-    --glow-primary: 262 83% 58%;
+    --glow-primary: 152 76% 42%;
   }
 
   .dark {
@@ -59,7 +59,7 @@
     --popover: 240 10% 10%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 262 83% 65%;
+    --primary: 152 76% 50%;
     --primary-foreground: 240 10% 4%;
 
     --secondary: 240 6% 14%;
@@ -68,7 +68,7 @@
     --muted: 240 6% 14%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 262 83% 65%;
+    --accent: 152 76% 50%;
     --accent-foreground: 240 10% 4%;
 
     --destructive: 0 72% 51%;
@@ -76,16 +76,16 @@
 
     --border: 240 6% 18%;
     --input: 240 6% 18%;
-    --ring: 262 83% 65%;
+    --ring: 152 76% 50%;
 
     --barcode-bg: 0 0% 100%;
     --barcode-lines: 240 10% 4%;
-    --scanner-glow: 262 83% 65%;
+    --scanner-glow: 152 76% 50%;
     --grid-color: 240 6% 8%;
     --terminal-bg: 240 10% 6%;
-    --terminal-text: 262 83% 75%;
+    --terminal-text: 152 76% 60%;
     --glass-bg: 240 10% 8% / 0.9;
-    --glow-primary: 262 83% 65%;
+    --glow-primary: 152 76% 50%;
   }
 }
 
