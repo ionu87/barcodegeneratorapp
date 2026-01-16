@@ -333,24 +333,24 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Preview</h2>
-        <div className="flex gap-2">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold">Preview</h2>
+        <div className="flex gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={copyToClipboard}
             disabled={!isValid || !!renderError}
-            className="gap-2"
+            className="gap-2 rounded-xl h-10 px-4 border-border/50 hover:bg-secondary/80"
           >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy'}
           </Button>
           <Button
             size="sm"
             onClick={downloadBarcode}
             disabled={!isValid || !!renderError}
-            className="gap-2"
+            className="gap-2 rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
           >
             <Download className="h-4 w-4" />
             Download PNG
@@ -358,33 +358,43 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center bg-muted/50 rounded-lg border-2 border-dashed border-border p-8 min-h-[300px] relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-secondary/50 to-secondary/30 rounded-2xl border border-border/30 p-8 min-h-[350px] relative overflow-hidden">
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-30 grid-pattern pointer-events-none" />
+        
         {/* Scanner effect overlay */}
         {isValid && !renderError && config.text.trim() && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="scanner-line absolute left-0 right-0 h-0.5 bg-primary" />
+            <div className="scanner-line absolute left-0 right-0 h-1 rounded-full" />
           </div>
         )}
 
         {!config.text.trim() ? (
-          <div className="text-center text-muted-foreground">
-            <p className="font-medium">Enter a value to generate barcode</p>
-            <p className="text-sm mt-1">Your barcode will appear here</p>
+          <div className="text-center text-muted-foreground relative z-10">
+            <div className="h-16 w-16 rounded-2xl bg-secondary/80 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+            <p className="font-semibold text-lg">Enter a value to generate barcode</p>
+            <p className="text-sm mt-1 text-muted-foreground/70">Your barcode will appear here</p>
           </div>
         ) : !isValid ? (
-          <div className="text-center text-destructive flex flex-col items-center gap-2">
-            <AlertCircle className="h-8 w-8" />
-            <p className="font-medium">{errorMessage}</p>
+          <div className="text-center text-destructive flex flex-col items-center gap-3 relative z-10">
+            <div className="h-16 w-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-8 w-8" />
+            </div>
+            <p className="font-semibold text-lg">{errorMessage}</p>
           </div>
         ) : renderError ? (
-          <div className="text-center text-destructive flex flex-col items-center gap-2">
-            <AlertCircle className="h-8 w-8" />
-            <p className="font-medium">Render Error</p>
+          <div className="text-center text-destructive flex flex-col items-center gap-3 relative z-10">
+            <div className="h-16 w-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="h-8 w-8" />
+            </div>
+            <p className="font-semibold">Render Error</p>
             <p className="text-sm">{renderError}</p>
           </div>
         ) : (
           <div 
-            className="bg-barcode-bg p-4 rounded-lg shadow-lg glow-border transition-all duration-300"
+            className="bg-barcode-bg p-6 rounded-2xl shadow-2xl glow-border transition-all duration-300 relative z-10"
             style={getPreviewStyles()}
           >
             {is2D ? (
@@ -401,17 +411,17 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       </div>
 
       {checksumInfo && (
-        <div className="mt-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
-          <p className="text-xs font-mono text-primary">{checksumInfo}</p>
+        <div className="mt-4 p-4 bg-primary/10 rounded-xl border border-primary/20">
+          <p className="text-sm font-mono text-primary">{checksumInfo}</p>
         </div>
       )}
 
       {effects.enableEffects && (
-        <div className="mt-4 p-3 bg-terminal-bg rounded-lg">
+        <div className="mt-4 p-4 bg-terminal-bg rounded-xl">
           <p className="text-xs font-mono terminal-text">
-            Effects Active: scale={effects.scale.toFixed(2)}x, contrast={effects.contrast.toFixed(2)}, 
-            blur={effects.blur}px, noise={effects.noise}%, rotation={effects.rotation}°, 
-            thickness={effects.lineThickness.toFixed(2)}x, spacing={effects.lineSpacing.toFixed(2)}x
+            Effects: scale={effects.scale.toFixed(2)}x | contrast={effects.contrast.toFixed(2)} | 
+            blur={effects.blur}px | noise={effects.noise}% | rotation={effects.rotation}° | 
+            thickness={effects.lineThickness.toFixed(2)}x | spacing={effects.lineSpacing.toFixed(2)}x
           </p>
         </div>
       )}
