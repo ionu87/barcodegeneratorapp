@@ -85,19 +85,29 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     }
 
     try {
-      bwipjs.toCanvas(barcodeCanvasRef.current, {
+      // Build options based on barcode format
+      const bwipOptions: Record<string, unknown> = {
         bcid: getBwipFormat(config.format),
         text: barcodeText,
-        scale: effectiveWidth,
-        height: config.format === 'pdf417' ? Math.floor(config.height / 10) : config.height / 5,
-        width: config.format === 'pdf417' ? Math.floor(config.height / 3) : undefined,
+        scale: Math.max(1, Math.round(effectiveWidth)),
         includetext: config.displayValue,
         textsize: config.fontSize,
         textxalign: 'center',
         backgroundcolor: config.background.replace('#', ''),
         barcolor: config.lineColor.replace('#', ''),
         padding: config.margin,
-      });
+      };
+
+      // Add format-specific options
+      if (config.format === 'pdf417') {
+        bwipOptions.height = Math.floor(config.height / 10);
+        bwipOptions.width = Math.floor(config.height / 3);
+      } else if (config.format === 'qrcode' || config.format === 'azteccode' || config.format === 'datamatrix') {
+        // For QR, Aztec, and DataMatrix, don't set width/height - they auto-size based on scale
+        // These are square barcodes that size themselves
+      }
+
+      bwipjs.toCanvas(barcodeCanvasRef.current, bwipOptions as unknown as Parameters<typeof bwipjs.toCanvas>[1]);
       setBarcodeDataUrl(barcodeCanvasRef.current.toDataURL('image/png'));
       setRenderError(null);
     } catch (error) {
