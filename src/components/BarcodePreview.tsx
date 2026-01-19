@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
 import bwipjs from 'bwip-js';
-import { BarcodeConfig, applyChecksum, is2DBarcode } from '@/lib/barcodeUtils';
+import { BarcodeConfig, applyChecksum, is2DBarcode, QUALITY_LEVELS } from '@/lib/barcodeUtils';
 import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
 import { Download, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,13 +43,24 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     return applyChecksum(config.text, config.format, config.checksumType);
   }, [config.text, config.format, config.checksumType]);
 
-  // Compute effective bar width based on line thickness and spacing
+  // Get quality multiplier
+  const qualityMultiplier = useMemo(() => {
+    return QUALITY_LEVELS.find(q => q.value === config.quality)?.multiplier || 2;
+  }, [config.quality]);
+
+  // Compute effective bar width based on line thickness, spacing, and quality
   const effectiveWidth = useMemo(() => {
+    const baseWidth = config.width * qualityMultiplier;
     if (effects.enableEffects) {
-      return config.width * effects.lineThickness;
+      return baseWidth * effects.lineThickness;
     }
-    return config.width;
-  }, [config.width, effects.enableEffects, effects.lineThickness]);
+    return baseWidth;
+  }, [config.width, effects.enableEffects, effects.lineThickness, qualityMultiplier]);
+
+  // Compute effective height based on quality
+  const effectiveHeight = useMemo(() => {
+    return config.height * qualityMultiplier;
+  }, [config.height, qualityMultiplier]);
 
   // Render 1D barcodes with JsBarcode
   useEffect(() => {
@@ -62,12 +73,12 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       JsBarcode(svgRef.current, barcodeText, {
         format: config.format,
         width: effectiveWidth,
-        height: config.height,
+        height: effectiveHeight,
         displayValue: config.displayValue,
-        fontSize: config.fontSize,
+        fontSize: config.fontSize * qualityMultiplier,
         lineColor: config.lineColor,
         background: config.background,
-        margin: config.margin,
+        margin: config.margin * qualityMultiplier,
         font: 'JetBrains Mono',
       });
       setRenderError(null);
@@ -75,7 +86,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       console.error('Barcode render error:', error);
       setRenderError(error instanceof Error ? error.message : 'Failed to render barcode');
     }
-  }, [config, isValid, barcodeText, effectiveWidth, is2D]);
+  }, [config, isValid, barcodeText, effectiveWidth, effectiveHeight, qualityMultiplier, is2D]);
 
   // Render 2D barcodes with bwip-js
   useEffect(() => {
