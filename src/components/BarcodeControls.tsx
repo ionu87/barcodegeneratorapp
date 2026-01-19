@@ -60,18 +60,26 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
               </span>
               <p className="font-medium text-foreground">{selectedFormat.description}</p>
             </div>
-            <p className="font-mono text-xs text-muted-foreground">Valid: {selectedFormat.validChars}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
+              <span>Valid: {selectedFormat.validChars}</span>
+              <span className="text-primary font-semibold">Length: {selectedFormat.lengthHint}</span>
+            </div>
           </div>
         )}
       </div>
 
       {/* Value Input */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Settings2 className="h-4 w-4 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Settings2 className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-semibold">Value</span>
           </div>
-          <span className="font-semibold">Value</span>
+          <span className="text-sm font-mono text-muted-foreground">
+            {config.text.length} chars
+          </span>
         </div>
         <Input
           value={config.text}
