@@ -165,13 +165,14 @@ export function applyChecksum(text: string, format: BarcodeFormat, checksumType:
   }
 }
 
-export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description: string; validChars: string; category: '1D' | '2D' }[] = [
+export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description: string; validChars: string; lengthHint: string; category: '1D' | '2D' }[] = [
   // 1D Barcodes
   { 
     value: 'CODE39', 
     label: 'CODE 39', 
     description: 'Alphanumeric, widely used in industrial applications',
     validChars: 'A-Z, 0-9, -, ., $, /, +, %, SPACE',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
@@ -179,6 +180,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'CODE 93', 
     description: 'Higher density than CODE 39, full ASCII support',
     validChars: 'All ASCII characters',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
@@ -186,6 +188,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'CODE 128', 
     description: 'High-density, supports full ASCII',
     validChars: 'All ASCII characters (0-127)',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
@@ -193,6 +196,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'CODE 128A', 
     description: 'Uppercase and control characters',
     validChars: 'A-Z, 0-9, control chars',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
@@ -200,97 +204,111 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'CODE 128B', 
     description: 'Full ASCII text',
     validChars: 'All printable ASCII',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
     value: 'CODE128C', 
     label: 'CODE 128C', 
     description: 'Numeric only, double density',
-    validChars: '0-9 (even length)',
+    validChars: '0-9 only',
+    lengthHint: 'Even number of digits',
     category: '1D'
   },
   { 
     value: 'EAN13', 
     label: 'EAN-13', 
     description: 'European Article Number, retail products',
-    validChars: '12 or 13 digits',
+    validChars: '0-9 only',
+    lengthHint: '12 or 13 digits',
     category: '1D'
   },
   { 
     value: 'EAN8', 
     label: 'EAN-8', 
     description: 'Short version of EAN-13',
-    validChars: '7 or 8 digits',
+    validChars: '0-9 only',
+    lengthHint: '7 or 8 digits',
     category: '1D'
   },
   { 
     value: 'EAN5', 
     label: 'EAN-5', 
     description: 'UPC/EAN supplemental 5-digit add-on',
-    validChars: '5 digits',
+    validChars: '0-9 only',
+    lengthHint: 'Exactly 5 digits',
     category: '1D'
   },
   { 
     value: 'EAN2', 
     label: 'EAN-2', 
     description: 'UPC/EAN supplemental 2-digit add-on',
-    validChars: '2 digits',
+    validChars: '0-9 only',
+    lengthHint: 'Exactly 2 digits',
     category: '1D'
   },
   { 
     value: 'UPC', 
     label: 'UPC-A', 
     description: 'Universal Product Code, US retail',
-    validChars: '11 or 12 digits',
+    validChars: '0-9 only',
+    lengthHint: '11 or 12 digits',
     category: '1D'
   },
   { 
     value: 'UPCE', 
     label: 'UPC-E', 
     description: 'Compressed UPC for small packages',
-    validChars: '6, 7, or 8 digits',
+    validChars: '0-9 only',
+    lengthHint: '6, 7, or 8 digits',
     category: '1D'
   },
   { 
     value: 'ITF14', 
     label: 'ITF-14', 
     description: 'Interleaved 2 of 5, shipping containers',
-    validChars: '13 or 14 digits',
+    validChars: '0-9 only',
+    lengthHint: '13 or 14 digits',
     category: '1D'
   },
   { 
     value: 'ITF', 
     label: 'ITF', 
     description: 'Interleaved 2 of 5',
-    validChars: 'Even number of digits',
+    validChars: '0-9 only',
+    lengthHint: 'Even number of digits',
     category: '1D'
   },
   { 
     value: 'MSI', 
     label: 'MSI', 
     description: 'Modified Plessey, inventory control',
-    validChars: '0-9',
+    validChars: '0-9 only',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
     value: 'MSI10', 
     label: 'MSI Mod 10', 
     description: 'MSI with Mod 10 check digit',
-    validChars: '0-9',
+    validChars: '0-9 only',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
     value: 'MSI11', 
     label: 'MSI Mod 11', 
     description: 'MSI with Mod 11 check digit',
-    validChars: '0-9',
+    validChars: '0-9 only',
+    lengthHint: 'Any length',
     category: '1D'
   },
   { 
     value: 'pharmacode', 
     label: 'Pharmacode', 
     description: 'Pharmaceutical packaging',
-    validChars: 'Number 3-131070',
+    validChars: '0-9 only',
+    lengthHint: 'Number 3-131070',
     category: '1D'
   },
   { 
@@ -298,6 +316,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'Codabar', 
     description: 'Libraries, blood banks, shipping',
     validChars: '0-9, -, $, :, /, ., +',
+    lengthHint: 'Any length',
     category: '1D'
   },
   // 2D Barcodes
@@ -305,7 +324,8 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     value: 'qrcode', 
     label: 'QR Code', 
     description: 'Quick Response code, widely used for URLs and data',
-    validChars: 'All characters (alphanumeric, binary, Kanji)',
+    validChars: 'All characters',
+    lengthHint: 'Up to 4,296 chars',
     category: '2D'
   },
   { 
@@ -313,6 +333,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'Aztec Code', 
     description: 'High-density 2D barcode, used in transport tickets',
     validChars: 'All ASCII characters',
+    lengthHint: 'Up to 3,832 chars',
     category: '2D'
   },
   { 
@@ -320,6 +341,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'Data Matrix', 
     description: '2D matrix barcode for small items',
     validChars: 'All ASCII characters',
+    lengthHint: 'Up to 2,335 chars',
     category: '2D'
   },
   { 
@@ -327,6 +349,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     label: 'PDF417', 
     description: 'Stacked linear barcode, used in IDs and shipping',
     validChars: 'All ASCII characters',
+    lengthHint: 'Up to 1,850 chars',
     category: '2D'
   },
 ];
