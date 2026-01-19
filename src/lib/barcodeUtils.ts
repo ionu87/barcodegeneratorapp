@@ -52,6 +52,14 @@ export type ChecksumType =
   | 'ean13' 
   | 'upc';
 
+export type QualityLevel = 'A' | 'B' | 'C';
+
+export const QUALITY_LEVELS: { value: QualityLevel; label: string; description: string; multiplier: number }[] = [
+  { value: 'A', label: 'High (A)', description: 'Maximum resolution, best for printing', multiplier: 3 },
+  { value: 'B', label: 'Medium (B)', description: 'Balanced quality for screen display', multiplier: 2 },
+  { value: 'C', label: 'Low (C)', description: 'Smaller file size, faster rendering', multiplier: 1 },
+];
+
 export interface BarcodeConfig {
   format: BarcodeFormat;
   text: string;
@@ -63,6 +71,7 @@ export interface BarcodeConfig {
   background: string;
   margin: number;
   checksumType: ChecksumType;
+  quality: QualityLevel;
 }
 
 export function getApplicableChecksums(format: BarcodeFormat): { value: ChecksumType; label: string }[] {
@@ -660,5 +669,6 @@ export function getDefaultConfig(): BarcodeConfig {
     background: '#FFFFFF',
     margin: 10,
     checksumType: 'none',
+    quality: 'A',
   };
 }

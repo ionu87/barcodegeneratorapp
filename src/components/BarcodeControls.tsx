@@ -1,10 +1,10 @@
-import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, ChecksumType, getApplicableChecksums } from '@/lib/barcodeUtils';
+import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, ChecksumType, getApplicableChecksums, QualityLevel, QUALITY_LEVELS } from '@/lib/barcodeUtils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Barcode, Settings2, Palette, Ruler, Hash } from 'lucide-react';
+import { Barcode, Settings2, Palette, Ruler, Hash, Sparkles } from 'lucide-react';
 
 interface BarcodeControlsProps {
   config: BarcodeConfig;
@@ -81,6 +81,36 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
         />
         {!isValid && config.text && (
           <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{errorMessage}</p>
+        )}
+      </div>
+
+      {/* Quality Selection */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <span className="font-semibold">Quality</span>
+        </div>
+        <Select
+          value={config.quality}
+          onValueChange={(value) => onChange({ ...config, quality: value as QualityLevel })}
+        >
+          <SelectTrigger className="w-full h-12 rounded-xl bg-secondary/50 border-border/50 hover:bg-secondary/80 transition-colors">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border-border/50 rounded-xl shadow-2xl">
+            {QUALITY_LEVELS.map((quality) => (
+              <SelectItem key={quality.value} value={quality.value} className="rounded-lg mx-1">
+                <span className="font-medium">{quality.label}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {QUALITY_LEVELS.find(q => q.value === config.quality) && (
+          <p className="text-sm text-muted-foreground">
+            {QUALITY_LEVELS.find(q => q.value === config.quality)?.description}
+          </p>
         )}
       </div>
 
