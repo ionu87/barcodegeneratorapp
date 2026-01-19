@@ -43,24 +43,18 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     return applyChecksum(config.text, config.format, config.checksumType);
   }, [config.text, config.format, config.checksumType]);
 
-  // Get quality multiplier
-  const qualityMultiplier = useMemo(() => {
-    return QUALITY_LEVELS.find(q => q.value === config.quality)?.multiplier || 2;
+  // Get quality blur level
+  const qualityBlur = useMemo(() => {
+    return QUALITY_LEVELS.find(q => q.value === config.quality)?.blur || 0;
   }, [config.quality]);
 
-  // Compute effective bar width based on line thickness, spacing, and quality
+  // Compute effective bar width based on line thickness and spacing
   const effectiveWidth = useMemo(() => {
-    const baseWidth = config.width * qualityMultiplier;
     if (effects.enableEffects) {
-      return baseWidth * effects.lineThickness;
+      return config.width * effects.lineThickness;
     }
-    return baseWidth;
-  }, [config.width, effects.enableEffects, effects.lineThickness, qualityMultiplier]);
-
-  // Compute effective height based on quality
-  const effectiveHeight = useMemo(() => {
-    return config.height * qualityMultiplier;
-  }, [config.height, qualityMultiplier]);
+    return config.width;
+  }, [config.width, effects.enableEffects, effects.lineThickness]);
 
   // Render 1D barcodes with JsBarcode
   useEffect(() => {
@@ -73,12 +67,12 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       JsBarcode(svgRef.current, barcodeText, {
         format: config.format,
         width: effectiveWidth,
-        height: effectiveHeight,
+        height: config.height,
         displayValue: config.displayValue,
-        fontSize: config.fontSize * qualityMultiplier,
+        fontSize: config.fontSize,
         lineColor: config.lineColor,
         background: config.background,
-        margin: config.margin * qualityMultiplier,
+        margin: config.margin,
         font: 'JetBrains Mono',
       });
       setRenderError(null);
@@ -86,7 +80,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       console.error('Barcode render error:', error);
       setRenderError(error instanceof Error ? error.message : 'Failed to render barcode');
     }
-  }, [config, isValid, barcodeText, effectiveWidth, effectiveHeight, qualityMultiplier, is2D]);
+  }, [config, isValid, barcodeText, effectiveWidth, is2D]);
 
   // Render 2D barcodes with bwip-js
   useEffect(() => {
@@ -319,7 +313,18 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
 
   // Calculate preview styles for visual effect preview
   const getPreviewStyles = () => {
-    if (!effects.enableEffects) return {};
+    // Base quality blur
+    const baseBlur = qualityBlur;
+    
+    // Additional effects blur if enabled
+    const effectsBlur = effects.enableEffects ? effects.blur : 0;
+    const totalBlur = baseBlur + effectsBlur;
+    
+    if (!effects.enableEffects) {
+      return {
+        filter: totalBlur > 0 ? `blur(${totalBlur}px)` : undefined,
+      };
+    }
     
     return {
       transform: `
@@ -332,7 +337,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       filter: `
         contrast(${effects.contrast})
         brightness(${1 + effects.brightness / 100})
-        blur(${effects.blur}px)
+        blur(${totalBlur}px)
       `,
     };
   };

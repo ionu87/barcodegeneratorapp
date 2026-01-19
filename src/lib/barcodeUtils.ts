@@ -54,10 +54,10 @@ export type ChecksumType =
 
 export type QualityLevel = 'A' | 'B' | 'C';
 
-export const QUALITY_LEVELS: { value: QualityLevel; label: string; description: string; multiplier: number }[] = [
-  { value: 'A', label: 'High (A)', description: 'Maximum resolution, best for printing', multiplier: 3 },
-  { value: 'B', label: 'Medium (B)', description: 'Balanced quality for screen display', multiplier: 2 },
-  { value: 'C', label: 'Low (C)', description: 'Smaller file size, faster rendering', multiplier: 1 },
+export const QUALITY_LEVELS: { value: QualityLevel; label: string; description: string; blur: number }[] = [
+  { value: 'A', label: 'High (A)', description: 'Crystal clear, sharp edges', blur: 0 },
+  { value: 'B', label: 'Medium (B)', description: 'Slightly softened edges', blur: 0.5 },
+  { value: 'C', label: 'Low (C)', description: 'Blurred, degraded appearance', blur: 1.2 },
 ];
 
 export interface BarcodeConfig {
