@@ -41,7 +41,7 @@ export function BatchGenerator() {
     if (format === 'UPC') length = 11;
     if (format === 'ITF14') length = 13;
     if (format === 'ITF' && length % 2 !== 0) length = Math.max(2, length - 1);
-    if (format === 'CODE128C' && length % 2 !== 0) length = Math.max(2, length - 1);
+    
 
     const randomValues: string[] = [];
     for (let i = 0; i < count; i++) {
