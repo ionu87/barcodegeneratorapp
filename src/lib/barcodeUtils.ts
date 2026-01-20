@@ -5,9 +5,6 @@ export type BarcodeFormat =
   | 'CODE39'
   | 'CODE93'
   | 'CODE128'
-  | 'CODE128A'
-  | 'CODE128B'
-  | 'CODE128C'
   | 'EAN13'
   | 'EAN8'
   | 'EAN5'
@@ -101,16 +98,14 @@ export function getApplicableChecksums(format: BarcodeFormat): { value: Checksum
       break;
     case 'ITF':
     case 'ITF14':
-      checksums.push({ value: 'mod10', label: 'Modulo 10' });
+      // ITF requires even number of digits - checksum adds 1 digit, so we may need to pad
+      checksums.push({ value: 'mod10', label: 'Modulo 10 (auto-pads for even length)' });
       break;
     case 'MSI':
       checksums.push({ value: 'mod10', label: 'Modulo 10' });
       checksums.push({ value: 'mod11', label: 'Modulo 11' });
       break;
     case 'CODE128':
-    case 'CODE128A':
-    case 'CODE128B':
-    case 'CODE128C':
       checksums.push({ value: 'mod10', label: 'Modulo 10' });
       break;
   }
@@ -121,9 +116,19 @@ export function getApplicableChecksums(format: BarcodeFormat): { value: Checksum
 export function applyChecksum(text: string, format: BarcodeFormat, checksumType: ChecksumType): string {
   if (checksumType === 'none' || !text.trim()) return text;
   
+  // For ITF barcodes, we need to ensure even length after adding checksum
+  const isITF = format === 'ITF' || format === 'ITF14';
+  
   switch (checksumType) {
-    case 'mod10':
-      return text + calculateMod10(text);
+    case 'mod10': {
+      const checkDigit = calculateMod10(text);
+      let result = text + checkDigit;
+      // ITF requires even number of digits - pad with leading zero if needed
+      if (isITF && result.length % 2 !== 0) {
+        result = '0' + result;
+      }
+      return result;
+    }
     case 'mod11': {
       const check = calculateMod11(text);
       return text + (check === 10 ? 'X' : check);
@@ -192,31 +197,7 @@ export const BARCODE_FORMATS: { value: BarcodeFormat; label: string; description
     category: '1D'
   },
   { 
-    value: 'CODE128A', 
-    label: 'CODE 128A', 
-    description: 'Uppercase and control characters',
-    validChars: 'A-Z, 0-9, control chars',
-    lengthHint: 'Any length',
-    category: '1D'
-  },
-  { 
-    value: 'CODE128B', 
-    label: 'CODE 128B', 
-    description: 'Full ASCII text',
-    validChars: 'All printable ASCII',
-    lengthHint: 'Any length',
-    category: '1D'
-  },
-  { 
-    value: 'CODE128C', 
-    label: 'CODE 128C', 
-    description: 'Numeric only, double density',
-    validChars: '0-9 only',
-    lengthHint: 'Even number of digits',
-    category: '1D'
-  },
-  { 
-    value: 'EAN13', 
+    value: 'EAN13',
     label: 'EAN-13', 
     description: 'European Article Number, retail products',
     validChars: '0-9 only',
@@ -646,11 +627,6 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
     case 'ITF':
       if (!/^\d+$/.test(text) || text.length % 2 !== 0) {
         return { valid: false, message: 'ITF requires an even number of digits' };
-      }
-      break;
-    case 'CODE128C':
-      if (!/^\d+$/.test(text) || text.length % 2 !== 0) {
-        return { valid: false, message: 'CODE 128C requires an even number of digits' };
       }
       break;
     case 'pharmacode':
