@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "start": "electron .",
+  "build": "webpack",
   "electron:build": "electron-builder",
   "scripts": {
     "dev": "vite",
