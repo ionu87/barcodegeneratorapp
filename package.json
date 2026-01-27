@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "electron:build": "electron-builder",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
