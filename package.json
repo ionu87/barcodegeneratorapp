@@ -2,7 +2,7 @@
   "name": "barcodegeneratorapp",
   "version": "1.0.0",
   "description": "Barcode Generator Desktop App",
-  "main": "main.js",
+  "main": "electron/main.js",
   "author": "Your Name",
   "scripts": {
     "dev": "vite",
