@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "electron:build": "electron-builder"
+    "electron:build": "electron-builder --publish never"
   },
   "dependencies": {
     "lucide-react": "^0.312.0",
