@@ -26,4 +26,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: barcodegeneratorapp
-          path: release/*.exe
+          path: dist_electron/*.exe
