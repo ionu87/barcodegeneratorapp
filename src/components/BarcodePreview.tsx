@@ -90,7 +90,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     }
 
     try {
-      // Build options based on barcode format
       const bwipOptions: Record<string, unknown> = {
         bcid: getBwipFormat(config.format),
         text: barcodeText,
@@ -103,13 +102,9 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         padding: config.margin,
       };
 
-      // Add format-specific options
       if (config.format === 'pdf417') {
         bwipOptions.height = Math.floor(config.height / 10);
         bwipOptions.width = Math.floor(config.height / 3);
-      } else if (config.format === 'qrcode' || config.format === 'azteccode' || config.format === 'datamatrix') {
-        // For QR, Aztec, and DataMatrix, don't set width/height - they auto-size based on scale
-        // These are square barcodes that size themselves
       }
 
       bwipjs.toCanvas(barcodeCanvasRef.current, bwipOptions as unknown as Parameters<typeof bwipjs.toCanvas>[1]);
@@ -123,7 +118,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
   }, [config, isValid, barcodeText, effectiveWidth, is2D]);
 
   const applyEffects = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, img: HTMLImageElement) => {
-    // Calculate scaled dimensions
     const scaledWidth = Math.round(img.width * effects.scale);
     const scaledHeight = Math.round(img.height * effects.scale);
     
@@ -131,39 +125,31 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     canvas.height = scaledHeight;
     
     ctx.save();
-    
-    // Clear canvas
     ctx.fillStyle = config.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Apply rotation
     if (effects.rotation !== 0) {
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((effects.rotation * Math.PI) / 180);
       ctx.translate(-canvas.width / 2, -canvas.height / 2);
     }
     
-    // Apply perspective (simple skew approximation)
     if (effects.perspective > 0) {
       const skewAmount = effects.perspective * 0.01;
       ctx.transform(1, skewAmount * 0.5, -skewAmount * 0.3, 1, 0, 0);
     }
     
-    // Apply line spacing by stretching horizontally
     const spacingMultiplier = effects.lineSpacing;
     const drawWidth = scaledWidth * spacingMultiplier;
     const offsetX = (scaledWidth - drawWidth) / 2;
     
-    // Draw the image with spacing applied
     ctx.drawImage(img, offsetX, 0, drawWidth, scaledHeight);
     
-    // Apply contrast and brightness
     if (effects.contrast !== 1 || effects.brightness !== 0) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
       for (let i = 0; i < data.length; i += 4) {
-        // Apply contrast
         data[i] = Math.min(255, Math.max(0, ((data[i] - 128) * effects.contrast) + 128 + effects.brightness));
         data[i + 1] = Math.min(255, Math.max(0, ((data[i + 1] - 128) * effects.contrast) + 128 + effects.brightness));
         data[i + 2] = Math.min(255, Math.max(0, ((data[i + 2] - 128) * effects.contrast) + 128 + effects.brightness));
@@ -172,11 +158,10 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       ctx.putImageData(imageData, 0, 0);
     }
     
-    // Apply noise
     if (effects.noise > 0) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-      const noiseAmount = effects.noise * 2.55; // Convert percentage to 0-255 range
+      const noiseAmount = effects.noise * 2.55;
       
       for (let i = 0; i < data.length; i += 4) {
         const noise = (Math.random() - 0.5) * noiseAmount;
@@ -190,7 +175,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     
     ctx.restore();
     
-    // Apply blur as CSS filter on canvas
     if (effects.blur > 0) {
       ctx.filter = `blur(${effects.blur}px)`;
       ctx.drawImage(canvas, 0, 0);
@@ -204,7 +188,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     if (!canvas || !ctx) return;
 
     if (is2D) {
-      // For 2D barcodes, use the barcodeCanvasRef directly
       if (!barcodeCanvasRef.current) return;
       
       const sourceCanvas = barcodeCanvasRef.current;
@@ -227,7 +210,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       };
       img.src = sourceCanvas.toDataURL('image/png');
     } else {
-      // For 1D barcodes, use the SVG
       if (!svgRef.current) return;
       
       const svg = svgRef.current;
@@ -311,12 +293,8 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     }
   };
 
-  // Calculate preview styles for visual effect preview
   const getPreviewStyles = () => {
-    // Base quality blur
     const baseBlur = qualityBlur;
-    
-    // Additional effects blur if enabled
     const effectsBlur = effects.enableEffects ? effects.blur : 0;
     const totalBlur = baseBlur + effectsBlur;
     
@@ -342,15 +320,15 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     };
   };
 
-  // Show checksum info if applied
   const checksumInfo = config.checksumType !== 'none' && config.text !== barcodeText 
     ? `Value with checksum: ${barcodeText}`
     : null;
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header with buttons */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">Preview</h2>
+        <h2 className="text-lg font-medium text-muted-foreground">Preview</h2>
         <div className="flex gap-3">
           <Button
             variant="outline"
@@ -366,7 +344,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
             size="sm"
             onClick={downloadBarcode}
             disabled={!isValid || !!renderError}
-            className="gap-2 rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+            className="gap-2 rounded-xl h-10 px-5 download-btn text-white font-medium"
           >
             <Download className="h-4 w-4" />
             Download PNG
@@ -374,9 +352,15 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-secondary/50 to-secondary/30 rounded-2xl border border-border/30 p-8 min-h-[350px] relative overflow-hidden">
+      {/* Elevated Stage */}
+      <div className="flex-1 flex items-center justify-center elevated-stage rounded-2xl border border-border/30 p-8 min-h-[350px] relative overflow-hidden">
+        {/* Ambient glow background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+        </div>
+        
         {/* Subtle grid pattern */}
-        <div className="absolute inset-0 opacity-30 grid-pattern pointer-events-none" />
+        <div className="absolute inset-0 opacity-20 grid-pattern pointer-events-none" />
         
         {/* Scanner effect overlay */}
         {isValid && !renderError && config.text.trim() && (
@@ -410,7 +394,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           </div>
         ) : (
           <div 
-            className="bg-barcode-bg p-6 rounded-2xl shadow-2xl glow-border transition-all duration-300 relative z-10"
+            className="barcode-platform p-6 rounded-2xl transition-all duration-300 relative z-10"
             style={getPreviewStyles()}
           >
             {is2D ? (
