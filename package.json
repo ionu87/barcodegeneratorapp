@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "build:dev": "vite build --mode development",
     "electron:build": "npm run build && electron-builder --publish never"
   },
   "build": {
