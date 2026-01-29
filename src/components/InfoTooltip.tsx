@@ -30,9 +30,9 @@ export function InfoTooltip({ content, className }: InfoTooltipProps) {
       </button>
       
       {isVisible && (
-        <div className="info-tooltip absolute z-50 left-full ml-3 top-1/2 -translate-y-1/2 w-64 p-3 rounded-xl text-sm animate-fade-in">
+        <div className="info-tooltip absolute z-50 left-full ml-3 top-1/2 -translate-y-1/2 w-64 p-3 rounded-xl text-sm animate-fade-in bg-popover border border-border shadow-lg">
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-popover border-l border-b border-border rotate-45" />
-          <div className="relative text-popover-foreground">
+          <div className="relative">
             {content}
           </div>
         </div>
