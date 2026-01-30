@@ -78,34 +78,34 @@
   }
 
   .dark {
-    --background: 0 0% 23%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 18%;
+    --card: 0 0% 8%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 20%;
+    --popover: 0 0% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 120 100% 30%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 28%;
+    --primary: 120 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 25%;
+    --muted: 0 0% 12%;
     --muted-foreground: 0 0% 70%;
-    --accent: 120 100% 30%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 120 100% 50%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 32%;
-    --input: 0 0% 28%;
-    --ring: 120 100% 30%;
+    --border: 0 0% 25%;
+    --input: 0 0% 15%;
+    --ring: 120 100% 50%;
     --barcode-bg: 0 0% 100%;
-    --barcode-lines: 0 0% 5%;
-    --scanner-glow: 120 100% 35%;
-    --grid-color: 0 0% 20%;
-    --terminal-bg: 0 0% 12%;
-    --terminal-text: 120 100% 40%;
-    --glass-bg: 0 0% 15% / 0.85;
-    --glow-primary: 120 100% 30%;
-    --neon-green: 120 100% 35%;
+    --barcode-lines: 0 0% 0%;
+    --scanner-glow: 120 100% 50%;
+    --grid-color: 0 0% 15%;
+    --terminal-bg: 0 0% 5%;
+    --terminal-text: 120 100% 50%;
+    --glass-bg: 0 0% 8%;
+    --glow-primary: 120 100% 50%;
+    --neon-green: 120 100% 50%;
   }
 }
 
@@ -138,16 +138,12 @@
   }
 
   .glass-panel {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border) / 0.5);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
 
   .glass-card {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: hsl(var(--card));
   }
 
   .glow-border {

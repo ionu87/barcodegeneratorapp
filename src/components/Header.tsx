@@ -23,7 +23,8 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-border/50 glass-panel sticky top-0 z-50">
+    <header className="border-b border-primary/30 sticky top-0 z-50 bg-card"
+>
       <div className="container mx-auto px-4 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
