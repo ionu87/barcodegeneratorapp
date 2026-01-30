@@ -37,9 +37,6 @@ export function Header() {
               <h1 className="text-2xl font-bold tracking-tight">
                 <span className="gradient-text">Barcode</span> Generator
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Create professional barcodes instantly
-              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
