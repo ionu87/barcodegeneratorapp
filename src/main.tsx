@@ -1,10 +1,4 @@
 import { createRoot } from "react-dom/client";
-import { InfoTooltip } from '@/components/ui/info-tooltip';
-
-<div>
-  <span>Some field</span>
-  <InfoTooltip content="This explains what the field means" />
-</div>
 import App from "./App.tsx";
 import "./index.css";
 
