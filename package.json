@@ -20,9 +20,11 @@
     "files": [
       "dist/**/*",
       "electron/main.js",
-      "package.json"
+      "package.json",
+      "build/**/*"
     ],
     "win": {
+       "icon": "build/icon.ico",
       "target": [
         "nsis",
         "portable"
