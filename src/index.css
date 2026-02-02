@@ -133,7 +133,7 @@
   }
 
   .grid-pattern {
-    background-image: radial-gradient(hsl(var(--grid-color)) 1px, transparent 1px);
+    background-image: none;
     background-size: 24px 24px;
   }
 

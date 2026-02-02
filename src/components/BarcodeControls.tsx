@@ -33,20 +33,36 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
             </div>
             <span className="font-semibold">Barcode Format</span>
           </div>
-          {selectedFormat && (
+{selectedFormat && (
             <InfoTooltip
               content={
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${selectedFormat.category === '2D' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
                       {selectedFormat.category}
                     </span>
                     <span className="font-medium">{selectedFormat.label}</span>
                   </div>
-                  <p className="text-muted-foreground">{selectedFormat.description}</p>
-                  <div className="pt-1 border-t border-border/50 font-mono text-xs text-muted-foreground">
-                    <div>Valid: {selectedFormat.validChars}</div>
-                    <div className="text-primary">Length: {selectedFormat.lengthHint}</div>
+                  <p className="text-sm text-muted-foreground">{selectedFormat.description}</p>
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-semibold text-foreground shrink-0">Accepted Symbols:</span>
+                      <span className="text-xs font-mono text-muted-foreground">{selectedFormat.validChars}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-semibold text-foreground shrink-0">Length:</span>
+                      <span className="text-xs font-mono text-primary">{selectedFormat.lengthHint}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs font-semibold text-foreground shrink-0">Validation:</span>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {selectedFormat.category === '2D' 
+                          ? 'Any valid text input accepted' 
+                          : selectedFormat.validChars.includes('0-9 only') 
+                            ? 'Numeric input only, auto-validated'
+                            : 'Alphanumeric, special chars validated'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               }
