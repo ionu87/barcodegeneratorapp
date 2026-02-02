@@ -335,7 +335,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
             size="sm"
             onClick={copyToClipboard}
             disabled={!isValid || !!renderError}
-            className="gap-2 rounded-xl h-10 px-4 border-border/50 hover:bg-secondary/80"
+            className="gap-2 rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90 text-foreground"
           >
             {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy'}
@@ -417,8 +417,8 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       )}
 
       {effects.enableEffects && (
-        <div className="mt-4 p-4 bg-terminal-bg rounded-xl">
-          <p className="text-xs font-mono terminal-text">
+        <div className="mt-4 p-4 bg-muted rounded-xl border border-border/50">
+          <p className="text-xs font-mono text-muted-foreground">
             Effects: scale={effects.scale.toFixed(2)}x | contrast={effects.contrast.toFixed(2)} | 
             blur={effects.blur}px | noise={effects.noise}% | rotation={effects.rotation}° | 
             thickness={effects.lineThickness.toFixed(2)}x | spacing={effects.lineSpacing.toFixed(2)}x
