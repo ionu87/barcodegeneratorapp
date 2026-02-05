@@ -66,13 +66,13 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     try {
       JsBarcode(svgRef.current, barcodeText, {
         format: config.format,
-        width: effectiveWidth,
-        height: config.height,
+         width: effectiveWidth * config.scale,
+         height: config.height * config.scale,
         displayValue: config.displayValue,
-        fontSize: config.fontSize,
+         fontSize: config.fontSize * config.scale,
         lineColor: config.lineColor,
         background: config.background,
-        margin: config.margin,
+         margin: config.margin * config.scale,
         font: 'JetBrains Mono',
       });
       setRenderError(null);
@@ -80,7 +80,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       console.error('Barcode render error:', error);
       setRenderError(error instanceof Error ? error.message : 'Failed to render barcode');
     }
-  }, [config, isValid, barcodeText, effectiveWidth, is2D]);
+   }, [config, isValid, barcodeText, effectiveWidth, is2D, config.scale]);
 
   // Render 2D barcodes with bwip-js
   useEffect(() => {
@@ -93,18 +93,18 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       const bwipOptions: Record<string, unknown> = {
         bcid: getBwipFormat(config.format),
         text: barcodeText,
-        scale: Math.max(1, Math.round(effectiveWidth)),
+         scale: Math.max(1, Math.round(effectiveWidth * config.scale)),
         includetext: config.displayValue,
-        textsize: config.fontSize,
+         textsize: Math.round(config.fontSize * config.scale),
         textxalign: 'center',
         backgroundcolor: config.background.replace('#', ''),
         barcolor: config.lineColor.replace('#', ''),
-        padding: config.margin,
+         padding: Math.round(config.margin * config.scale),
       };
 
       if (config.format === 'pdf417') {
-        bwipOptions.height = Math.floor(config.height / 10);
-        bwipOptions.width = Math.floor(config.height / 3);
+         bwipOptions.height = Math.floor((config.height * config.scale) / 10);
+         bwipOptions.width = Math.floor((config.height * config.scale) / 3);
       }
 
       bwipjs.toCanvas(barcodeCanvasRef.current, bwipOptions as unknown as Parameters<typeof bwipjs.toCanvas>[1]);
@@ -115,7 +115,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       setRenderError(error instanceof Error ? error.message : 'Failed to render 2D barcode');
       setBarcodeDataUrl(null);
     }
-  }, [config, isValid, barcodeText, effectiveWidth, is2D]);
+   }, [config, isValid, barcodeText, effectiveWidth, is2D, config.scale]);
 
   const applyEffects = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, img: HTMLImageElement) => {
     const scaledWidth = Math.round(img.width * effects.scale);

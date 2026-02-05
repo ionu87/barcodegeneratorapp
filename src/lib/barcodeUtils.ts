@@ -69,6 +69,7 @@ export interface BarcodeConfig {
   margin: number;
   checksumType: ChecksumType;
   quality: QualityLevel;
+   scale: number;
 }
 
 export function getApplicableChecksums(format: BarcodeFormat): { value: ChecksumType; label: string }[] {
@@ -669,5 +670,6 @@ export function getDefaultConfig(): BarcodeConfig {
     margin: 10,
     checksumType: 'none',
     quality: 'A',
+     scale: 1,
   };
 }
