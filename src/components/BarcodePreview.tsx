@@ -3,7 +3,7 @@ import JsBarcode from 'jsbarcode';
 import bwipjs from 'bwip-js';
 import { BarcodeConfig, applyChecksum, is2DBarcode, QUALITY_LEVELS } from '@/lib/barcodeUtils';
 import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
-import { Download, Copy, Check, AlertCircle } from 'lucide-react';
+ import { Download, Copy, Check, AlertCircle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -293,6 +293,109 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     }
   };
 
+   const printBarcode = async () => {
+     const canvas = canvasRef.current;
+     const ctx = canvas?.getContext('2d');
+     if (!canvas || !ctx) return;
+ 
+     const generatePrintableImage = (img: HTMLImageElement, cleanup?: () => void): string => {
+       if (effects.enableEffects) {
+         applyEffects(ctx, canvas, img);
+       } else {
+         canvas.width = img.width;
+         canvas.height = img.height;
+         ctx.drawImage(img, 0, 0);
+       }
+       cleanup?.();
+       return canvas.toDataURL('image/png');
+     };
+ 
+     const openPrintWindow = (imageDataUrl: string) => {
+       const printWindow = window.open('', '_blank', 'width=600,height=400');
+       if (!printWindow) {
+         toast.error('Please allow pop-ups to print');
+         return;
+       }
+ 
+       printWindow.document.write(`
+         <!DOCTYPE html>
+         <html>
+           <head>
+             <title>Print Barcode</title>
+             <style>
+               * {
+                 margin: 0;
+                 padding: 0;
+                 box-sizing: border-box;
+               }
+               body {
+                 display: flex;
+                 justify-content: center;
+                 align-items: center;
+                 min-height: 100vh;
+                 background: white;
+               }
+               img {
+                 max-width: 100%;
+                 height: auto;
+                 image-rendering: -webkit-optimize-contrast;
+                 image-rendering: crisp-edges;
+               }
+               @media print {
+                 body {
+                   display: flex;
+                   justify-content: center;
+                   align-items: center;
+                 }
+                 img {
+                   max-width: 90%;
+                   height: auto;
+                 }
+               }
+             </style>
+           </head>
+           <body>
+             <img src="${imageDataUrl}" alt="Barcode" />
+           </body>
+         </html>
+       `);
+       printWindow.document.close();
+ 
+       printWindow.onload = () => {
+         setTimeout(() => {
+           printWindow.focus();
+           printWindow.print();
+           printWindow.close();
+         }, 100);
+       };
+     };
+ 
+     if (is2D) {
+       if (!barcodeCanvasRef.current) return;
+       
+       const img = new Image();
+       img.onload = () => {
+         const dataUrl = generatePrintableImage(img);
+         openPrintWindow(dataUrl);
+       };
+       img.src = barcodeCanvasRef.current.toDataURL('image/png');
+     } else {
+       if (!svgRef.current) return;
+       
+       const svg = svgRef.current;
+       const svgData = new XMLSerializer().serializeToString(svg);
+       const img = new Image();
+       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+       const url = URL.createObjectURL(svgBlob);
+ 
+       img.onload = () => {
+         const dataUrl = generatePrintableImage(img, () => URL.revokeObjectURL(url));
+         openPrintWindow(dataUrl);
+       };
+       img.src = url;
+     }
+   };
+ 
   const getPreviewStyles = () => {
     const baseBlur = qualityBlur;
     const effectsBlur = effects.enableEffects ? effects.blur : 0;
@@ -340,6 +443,16 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
             {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy'}
           </Button>
+           <Button
+             variant="outline"
+             size="sm"
+             onClick={printBarcode}
+             disabled={!isValid || !!renderError}
+             className="gap-2 rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90 text-foreground"
+           >
+             <Printer className="h-4 w-4" />
+             Print
+           </Button>
           <Button
             size="sm"
             onClick={downloadBarcode}
