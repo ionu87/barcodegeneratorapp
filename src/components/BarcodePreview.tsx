@@ -299,11 +299,15 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
      if (!canvas || !ctx) return;
  
      const generatePrintableImage = (img: HTMLImageElement, cleanup?: () => void): string => {
+      // Disable image smoothing for sharp barcode rendering
+      ctx.imageSmoothingEnabled = false;
+      
        if (effects.enableEffects) {
          applyEffects(ctx, canvas, img);
        } else {
          canvas.width = img.width;
          canvas.height = img.height;
+        ctx.imageSmoothingEnabled = false;
          ctx.drawImage(img, 0, 0);
        }
        cleanup?.();
@@ -334,22 +338,32 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
                  align-items: center;
                  min-height: 100vh;
                  background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
                }
                img {
                  max-width: 100%;
                  height: auto;
                  image-rendering: -webkit-optimize-contrast;
                  image-rendering: crisp-edges;
+                image-rendering: pixelated;
+                -ms-interpolation-mode: nearest-neighbor;
                }
                @media print {
                  body {
                    display: flex;
                    justify-content: center;
                    align-items: center;
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
                  }
                  img {
                    max-width: 90%;
                    height: auto;
+                  image-rendering: -webkit-optimize-contrast;
+                  image-rendering: crisp-edges;
+                  image-rendering: pixelated;
+                  -ms-interpolation-mode: nearest-neighbor;
                  }
                }
              </style>
