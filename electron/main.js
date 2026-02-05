@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -7,43 +7,42 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 900,
-    minHeight: 600,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-    },
-    icon: path.join(__dirname, '../public/favicon.ico'),
-    titleBarStyle: 'default',
-    show: false,
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true
+    }
   });
 
-  // Determine if we're in development or production
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-
-  if (isDev) {
-    // In development, load from Vite dev server
+  // Load your app
+  if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
   } else {
-    // In production, load the built files
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Show window when ready to prevent visual flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+  // Handle print request
+  ipcMain.on('print-barcode', () => {
+    mainWindow.webContents.print({
+      silent: false,
+      printBackground: true,
+      color: true,
+      margins: {
+        marginType: 'default'
+      }
+    }, (success, errorType) => {
+      if (!success) {
+        console.log('Print failed:', errorType);
+      }
+    });
   });
 
-  // Open external links in default browser
+  // Allow print dialog
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (url.startsWith('about:')) {
+      return { action: 'allow' };
+    }
     return { action: 'deny' };
-  });
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
   });
 }
 
