@@ -91,23 +91,21 @@ export function getApplicableChecksums(format: BarcodeFormat): { value: Checksum
       checksums.push({ value: '7CheckDR', label: '7 Check DR' });
       checksums.push({ value: 'mod16Japan', label: 'Modulo 16 Japan' });
       break;
+    // EAN-13, EAN-8, UPC-A, UPC-E, Code 128 have intrinsic checksums
+    // handled automatically by the rendering library — no user option needed
     case 'EAN13':
-      checksums.push({ value: 'ean13', label: 'EAN-13 Check' });
-      break;
+    case 'EAN8':
     case 'UPC':
-      checksums.push({ value: 'upc', label: 'UPC-A Modulo 10' });
-      break;
+    case 'UPCE':
+    case 'CODE128':
+      return []; // No checksum options — built-in
     case 'ITF':
     case 'ITF14':
-      // ITF requires even number of digits - checksum adds 1 digit, so we may need to pad
       checksums.push({ value: 'mod10', label: 'Modulo 10 (auto-pads for even length)' });
       break;
     case 'MSI':
       checksums.push({ value: 'mod10', label: 'Modulo 10' });
       checksums.push({ value: 'mod11', label: 'Modulo 11' });
-      break;
-    case 'CODE128':
-      checksums.push({ value: 'mod10', label: 'Modulo 10' });
       break;
   }
   
