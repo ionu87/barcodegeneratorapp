@@ -576,6 +576,34 @@ export function calculateUPCChecksum(input: string): number {
   return (10 - (total % 10)) % 10;
 }
 
+// Normalize input for JsBarcode: strip check digits so JsBarcode recalculates them
+export function normalizeForRendering(text: string, format: BarcodeFormat): string {
+  switch (format) {
+    case 'EAN13':
+      // JsBarcode EAN13 expects 12 digits (calculates check digit itself)
+      if (/^\d{13}$/.test(text)) return text.slice(0, 12);
+      return text;
+    case 'EAN8':
+      // JsBarcode EAN8 expects 7 digits
+      if (/^\d{8}$/.test(text)) return text.slice(0, 7);
+      return text;
+    case 'UPC':
+      // JsBarcode UPC expects 11 digits
+      if (/^\d{12}$/.test(text)) return text.slice(0, 11);
+      return text;
+    case 'UPCE':
+      // JsBarcode UPC-E expects 6 or 7 digits; 8 = includes check digit
+      if (/^\d{8}$/.test(text)) return text.slice(0, 7);
+      return text;
+    case 'ITF14':
+      // JsBarcode ITF14 expects 13 digits
+      if (/^\d{14}$/.test(text)) return text.slice(0, 13);
+      return text;
+    default:
+      return text;
+  }
+}
+
 export function validateInput(text: string, format: BarcodeFormat): { valid: boolean; message: string } {
   if (!text.trim()) {
     return { valid: false, message: 'Please enter a value' };
@@ -588,15 +616,20 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
       }
       break;
     case 'CODE93':
-      // CODE93 supports full ASCII
       break;
     case 'EAN13':
-      if (!/^\d{12,13}$/.test(text)) {
+      if (!/^\d+$/.test(text)) {
+        return { valid: false, message: 'EAN-13 only supports digits (0-9)' };
+      }
+      if (text.length !== 12 && text.length !== 13) {
         return { valid: false, message: 'EAN-13 requires exactly 12 or 13 digits' };
       }
       break;
     case 'EAN8':
-      if (!/^\d{7,8}$/.test(text)) {
+      if (!/^\d+$/.test(text)) {
+        return { valid: false, message: 'EAN-8 only supports digits (0-9)' };
+      }
+      if (text.length !== 7 && text.length !== 8) {
         return { valid: false, message: 'EAN-8 requires exactly 7 or 8 digits' };
       }
       break;
@@ -611,17 +644,26 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
       }
       break;
     case 'UPC':
-      if (!/^\d{11,12}$/.test(text)) {
+      if (!/^\d+$/.test(text)) {
+        return { valid: false, message: 'UPC-A only supports digits (0-9)' };
+      }
+      if (text.length !== 11 && text.length !== 12) {
         return { valid: false, message: 'UPC-A requires exactly 11 or 12 digits' };
       }
       break;
     case 'UPCE':
-      if (!/^\d{6,8}$/.test(text)) {
+      if (!/^\d+$/.test(text)) {
+        return { valid: false, message: 'UPC-E only supports digits (0-9)' };
+      }
+      if (text.length < 6 || text.length > 8) {
         return { valid: false, message: 'UPC-E requires 6, 7, or 8 digits' };
       }
       break;
     case 'ITF14':
-      if (!/^\d{13,14}$/.test(text)) {
+      if (!/^\d+$/.test(text)) {
+        return { valid: false, message: 'ITF-14 only supports digits (0-9)' };
+      }
+      if (text.length !== 13 && text.length !== 14) {
         return { valid: false, message: 'ITF-14 requires exactly 13 or 14 digits' };
       }
       break;
@@ -645,12 +687,10 @@ export function validateInput(text: string, format: BarcodeFormat): { valid: boo
         return { valid: false, message: 'MSI formats only support digits' };
       }
       break;
-    // 2D barcodes accept most text
     case 'qrcode':
     case 'azteccode':
     case 'datamatrix':
     case 'pdf417':
-      // These formats support various character sets
       break;
   }
 
