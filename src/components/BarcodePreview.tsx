@@ -214,6 +214,10 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       
       const svg = svgRef.current;
       const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return;
+
       const img = new Image();
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
@@ -226,8 +230,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           canvas.height = img.height;
           ctx.drawImage(img, 0, 0);
         }
-        
-        URL.revokeObjectURL(url);
 
         const link = document.createElement('a');
         link.download = `barcode-${config.format}-${barcodeText}.png`;
@@ -235,6 +237,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         link.click();
         
         toast.success('Barcode downloaded successfully');
+        URL.revokeObjectURL(url);
       };
 
       img.src = url;
@@ -246,7 +249,74 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    const processImage = (img: HTMLImageElement, cleanup?: () => void) => {
+    try {
+      if (is2D) {
+        if (!barcodeCanvasRef.current) return;
+        
+        const sourceCanvas = barcodeCanvasRef.current;
+        const img = new Image();
+        
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            if (effects.enableEffects) {
+              applyEffects(ctx, canvas, img);
+            } else {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+            }
+            resolve();
+          };
+          img.src = sourceCanvas.toDataURL('image/png');
+        });
+      } else {
+        if (!svgRef.current) return;
+        
+        const svg = svgRef.current;
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const img = new Image();
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            if (effects.enableEffects) {
+              applyEffects(ctx, canvas, img);
+            } else {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+            }
+            URL.revokeObjectURL(url);
+            resolve();
+          };
+          img.src = url;
+        });
+      }
+
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          setCopied(true);
+          toast.success('Barcode copied to clipboard');
+          setTimeout(() => setCopied(false), 2000);
+        }
+      });
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  // FIXED: Electron-compatible print function
+  const printBarcode = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    const generatePrintableImage = (img: HTMLImageElement, cleanup?: () => void): string => {
       if (effects.enableEffects) {
         applyEffects(ctx, canvas, img);
       } else {
@@ -255,29 +325,126 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         ctx.drawImage(img, 0, 0);
       }
       
-      cleanup?.();
+      if (cleanup) cleanup();
+      return canvas.toDataURL('image/png');
+    };
 
+    // Check if running in Electron
+    if (typeof window !== 'undefined' && window.require) {
       try {
-        canvas.toBlob(async (blob) => {
-          if (blob) {
-            await navigator.clipboard.write([
-              new ClipboardItem({ 'image/png': blob })
-            ]);
-            setCopied(true);
-            toast.success('Copied to clipboard');
-            setTimeout(() => setCopied(false), 2000);
-          }
-        }, 'image/png');
+        const { ipcRenderer } = window.require('electron');
+        
+        // Generate the image data URL
+        if (is2D) {
+          if (!barcodeCanvasRef.current) return;
+          
+          const img = new Image();
+          img.onload = () => {
+            const dataUrl = generatePrintableImage(img);
+            // Send to Electron for printing
+            ipcRenderer.send('print-barcode', dataUrl);
+          };
+          img.src = barcodeCanvasRef.current.toDataURL('image/png');
+        } else {
+          if (!svgRef.current) return;
+          
+          const svg = svgRef.current;
+          const svgData = new XMLSerializer().serializeToString(svg);
+          const img = new Image();
+          const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(svgBlob);
+
+          img.onload = () => {
+            const dataUrl = generatePrintableImage(img, () => URL.revokeObjectURL(url));
+            // Send to Electron for printing
+            ipcRenderer.send('print-barcode', dataUrl);
+          };
+          img.src = url;
+        }
+        
+        return; // Exit after sending to Electron
       } catch (error) {
-        toast.error('Failed to copy to clipboard');
+        console.error('Electron print failed, falling back to browser print:', error);
       }
+    }
+
+    // Fallback: Browser print (original method for web version)
+    const openPrintWindow = (imageDataUrl: string) => {
+      const printWindow = window.open('', '', 'width=800,height=600');
+      if (!printWindow) {
+        toast.error('Failed to open print window. Please check your popup blocker.');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print Barcode</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: white;
+              }
+              img {
+                max-width: 90%;
+                height: auto;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+                image-rendering: pixelated;
+                -ms-interpolation-mode: nearest-neighbor;
+              }
+              @media print {
+                body {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                 -webkit-print-color-adjust: exact;
+                 print-color-adjust: exact;
+                }
+                img {
+                  max-width: 90%;
+                  height: auto;
+                 image-rendering: -webkit-optimize-contrast;
+                 image-rendering: crisp-edges;
+                 image-rendering: pixelated;
+                 -ms-interpolation-mode: nearest-neighbor;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${imageDataUrl}" alt="Barcode" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.focus();
+          printWindow.print();
+          printWindow.close();
+        }, 100);
+      };
     };
 
     if (is2D) {
       if (!barcodeCanvasRef.current) return;
       
       const img = new Image();
-      img.onload = () => processImage(img);
+      img.onload = () => {
+        const dataUrl = generatePrintableImage(img);
+        openPrintWindow(dataUrl);
+      };
       img.src = barcodeCanvasRef.current.toDataURL('image/png');
     } else {
       if (!svgRef.current) return;
@@ -288,128 +455,14 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
 
-      img.onload = () => processImage(img, () => URL.revokeObjectURL(url));
+      img.onload = () => {
+        const dataUrl = generatePrintableImage(img, () => URL.revokeObjectURL(url));
+        openPrintWindow(dataUrl);
+      };
       img.src = url;
     }
   };
 
-   const printBarcode = async () => {
-     const canvas = canvasRef.current;
-     const ctx = canvas?.getContext('2d');
-     if (!canvas || !ctx) return;
- 
-     const generatePrintableImage = (img: HTMLImageElement, cleanup?: () => void): string => {
-      // Disable image smoothing for sharp barcode rendering
-      ctx.imageSmoothingEnabled = false;
-      
-       if (effects.enableEffects) {
-         applyEffects(ctx, canvas, img);
-       } else {
-         canvas.width = img.width;
-         canvas.height = img.height;
-        ctx.imageSmoothingEnabled = false;
-         ctx.drawImage(img, 0, 0);
-       }
-       cleanup?.();
-       return canvas.toDataURL('image/png');
-     };
- 
-     const openPrintWindow = (imageDataUrl: string) => {
-       const printWindow = window.open('', '_blank', 'width=600,height=400');
-       if (!printWindow) {
-         toast.error('Please allow pop-ups to print');
-         return;
-       }
- 
-       printWindow.document.write(`
-         <!DOCTYPE html>
-         <html>
-           <head>
-             <title>Print Barcode</title>
-             <style>
-               * {
-                 margin: 0;
-                 padding: 0;
-                 box-sizing: border-box;
-               }
-               body {
-                 display: flex;
-                 justify-content: center;
-                 align-items: center;
-                 min-height: 100vh;
-                 background: white;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-               }
-               img {
-                 max-width: 100%;
-                 height: auto;
-                 image-rendering: -webkit-optimize-contrast;
-                 image-rendering: crisp-edges;
-                image-rendering: pixelated;
-                -ms-interpolation-mode: nearest-neighbor;
-               }
-               @media print {
-                 body {
-                   display: flex;
-                   justify-content: center;
-                   align-items: center;
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-                 }
-                 img {
-                   max-width: 90%;
-                   height: auto;
-                  image-rendering: -webkit-optimize-contrast;
-                  image-rendering: crisp-edges;
-                  image-rendering: pixelated;
-                  -ms-interpolation-mode: nearest-neighbor;
-                 }
-               }
-             </style>
-           </head>
-           <body>
-             <img src="${imageDataUrl}" alt="Barcode" />
-           </body>
-         </html>
-       `);
-       printWindow.document.close();
- 
-       printWindow.onload = () => {
-         setTimeout(() => {
-           printWindow.focus();
-           printWindow.print();
-           printWindow.close();
-         }, 100);
-       };
-     };
- 
-     if (is2D) {
-       if (!barcodeCanvasRef.current) return;
-       
-       const img = new Image();
-       img.onload = () => {
-         const dataUrl = generatePrintableImage(img);
-         openPrintWindow(dataUrl);
-       };
-       img.src = barcodeCanvasRef.current.toDataURL('image/png');
-     } else {
-       if (!svgRef.current) return;
-       
-       const svg = svgRef.current;
-       const svgData = new XMLSerializer().serializeToString(svg);
-       const img = new Image();
-       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-       const url = URL.createObjectURL(svgBlob);
- 
-       img.onload = () => {
-         const dataUrl = generatePrintableImage(img, () => URL.revokeObjectURL(url));
-         openPrintWindow(dataUrl);
-       };
-       img.src = url;
-     }
-   };
- 
   const getPreviewStyles = () => {
     const baseBlur = qualityBlur;
     const effectsBlur = effects.enableEffects ? effects.blur : 0;
