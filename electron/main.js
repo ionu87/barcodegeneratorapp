@@ -30,23 +30,28 @@ function createWindow() {
   });
 }
 
-// FIXED: Handle print request with NATIVE Windows print preview
+// FIXED: Handle print request with image data and print preview support
 ipcMain.on('print-barcode', (event, imageDataUrl) => {
-  // Create a hidden print window
+  // Create a visible print preview window
   const printWindow = new BrowserWindow({
-    show: false,
+    width: 800,
+    height: 600,
+    show: true,  // Show the window for preview
+    title: 'Print Preview - Barcode',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
-    }
+    },
+    autoHideMenuBar: true,  // Hide menu bar for cleaner look
+    backgroundColor: '#ffffff'
   });
 
-  // Create HTML with the barcode image
+  // Create HTML with the barcode image and print button
   const printHTML = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Print Barcode</title>
+      <title>Print Preview - Barcode</title>
       <style>
         * {
           margin: 0;
@@ -54,11 +59,52 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
           box-sizing: border-box;
         }
         body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          background: #f5f5f5;
+          padding: 20px;
+        }
+        .toolbar {
+          background: white;
+          padding: 15px 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          margin-bottom: 20px;
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+        button {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .print-btn {
+          background: #6366f1;
+          color: white;
+        }
+        .print-btn:hover {
+          background: #5558e3;
+        }
+        .cancel-btn {
+          background: #e5e7eb;
+          color: #374151;
+        }
+        .cancel-btn:hover {
+          background: #d1d5db;
+        }
+        .preview-container {
+          background: white;
+          padding: 40px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           display: flex;
           justify-content: center;
           align-items: center;
-          min-height: 100vh;
-          background: white;
+          min-height: 500px;
         }
         img {
           max-width: 90%;
@@ -69,15 +115,23 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
           -ms-interpolation-mode: nearest-neighbor;
         }
         @media print {
-          @page {
-            margin: 0;
-          }
           body {
+            background: white;
+            padding: 0;
+          }
+          .toolbar {
+            display: none;
+          }
+          .preview-container {
+            box-shadow: none;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            min-height: 100vh;
+          }
+          @page {
+            margin: 0;
           }
           img {
             max-width: 90%;
@@ -86,12 +140,27 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
             image-rendering: crisp-edges;
             image-rendering: pixelated;
             -ms-interpolation-mode: nearest-neighbor;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         }
       </style>
     </head>
     <body>
-      <img src="${imageDataUrl}" alt="Barcode" />
+      <div class="toolbar">
+        <button class="print-btn" onclick="window.print()">
+          🖨️ Print
+        </button>
+        <button class="cancel-btn" onclick="window.close()">
+          ✕ Cancel
+        </button>
+        <span style="margin-left: auto; color: #6b7280; font-size: 13px;">
+          Click Print to open print dialog, or press Ctrl+P
+        </span>
+      </div>
+      <div class="preview-container">
+        <img src="${imageDataUrl}" alt="Barcode" />
+      </div>
     </body>
     </html>
   `;
@@ -99,24 +168,12 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
   // Load the HTML into the print window
   printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(printHTML));
 
-  // Wait for content to load, then open NATIVE print dialog with preview
-  printWindow.webContents.on('did-finish-load', () => {
-    // IMPORTANT: silent: false shows the native Windows print dialog with preview!
-    printWindow.webContents.print({
-      silent: true,           // ← FALSE = Shows native print dialog with preview
-      printBackground: true,
-      color: true,
-      margins: {
-        marginType: 'none'
-      },
-      pageSize: 'A4'          // Can be: A4, Letter, Legal, etc.
-    }, (success, errorType) => {
-      if (!success) {
-        console.log('Print failed:', errorType);
-      }
-      // Close the hidden window after printing (or if user cancels)
-      printWindow.close();
-    });
+  // Remove the menu bar
+  printWindow.setMenuBarVisibility(false);
+
+  // Handle window close
+  printWindow.on('closed', () => {
+    // Clean up
   });
 });
 
