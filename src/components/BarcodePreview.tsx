@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
 import bwipjs from 'bwip-js';
-import { BarcodeConfig, applyChecksum, is2DBarcode, QUALITY_LEVELS } from '@/lib/barcodeUtils';
+import { BarcodeConfig, applyChecksum, is2DBarcode, QUALITY_LEVELS, normalizeForRendering } from '@/lib/barcodeUtils';
 import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
  import { Download, Copy, Check, AlertCircle, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,8 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     }
 
     try {
-      JsBarcode(svgRef.current, barcodeText, {
+      const renderText = normalizeForRendering(barcodeText, config.format);
+      JsBarcode(svgRef.current, renderText, {
         format: config.format,
          width: effectiveWidth * config.scale,
          height: config.height * config.scale,
