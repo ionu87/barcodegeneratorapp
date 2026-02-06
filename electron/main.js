@@ -103,7 +103,7 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
   printWindow.webContents.on('did-finish-load', () => {
     // IMPORTANT: silent: false shows the native Windows print dialog with preview!
     printWindow.webContents.print({
-      silent: false,           // ← FALSE = Shows native print dialog with preview
+      silent: true,           // ← FALSE = Shows native print dialog with preview
       printBackground: true,
       color: true,
       margins: {
