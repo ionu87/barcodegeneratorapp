@@ -1,74 +1,97 @@
 
 
-# Batch Screen Enhancements
+# Fix Batch Screen Issues
 
-## Overview
-Add three features to the Batch Generator: Output Size control, direct batch printing, and PDF export. All changes are in `src/components/BatchGenerator.tsx` plus adding the `jspdf` dependency.
+## 1. Fix Barcode Label Duplication
 
-## 1. Output Size Control
-- Add `scale` state (default: 1) to BatchGenerator
-- Add the same UI from BarcodeControls: three preset buttons (Small 0.5x, Medium 1x, Large 2x) and a custom slider (0.25x-4x) with the Maximize2 icon header
-- Apply scale to all JsBarcode render params: `width: 2 * scale`, `height: 100 * scale`, `fontSize: 16 * scale`, `margin: 10 * scale`
-- Place the Output Size section between Format Selection and Random Generator
+The barcode value appears twice because:
+- `barcodeImageGenerator.ts` passes `displayValue: true` to JsBarcode, which renders the value text inside the barcode image itself
+- The print window and PDF export then add a second label (`<span>` / `pdf.text()`) below the image
 
-## 2. Direct Batch Printing
-- Add a "Print All" button with Printer icon
-- On click, generate all barcode images as PNG data URLs (with scale applied), then open a print window
-- Print window uses a responsive grid layout (2-3 barcodes per row) with each barcode's value as a label underneath
-- Apply the same crisp rendering CSS from BarcodePreview: `image-rendering: crisp-edges`, `pixelated`, `-webkit-optimize-contrast`, `print-color-adjust: exact`
-- Uses progress bar during image generation, then opens the print dialog
-- User can cancel via the browser's native print cancel
+**Fix**: Set `displayValue: false` in `barcodeImageGenerator.ts` so the PNG images contain only the barcode bars. The value text will be rendered separately in print/PDF layouts with proper styling, giving full control over text quality and positioning.
 
-## 3. PDF Export
-- Install `jspdf` as a new dependency
-- Add a "Download as PDF" button with FileText icon
-- Generate all barcode images, then create an A4-sized PDF using jspdf
-- Arrange barcodes in a grid layout, auto-calculating columns/rows based on image dimensions
-- Add page breaks when content exceeds page height
-- Print value label below each barcode
-- Auto-download with filename `batch_barcodes_YYYY-MM-DD.pdf`
+## 2. Improve Barcode Value Text Quality
 
-## 4. Button Layout
-Replace the single "Download All as ZIP" button with three buttons in a grid:
-- **Download as ZIP** (primary, FileArchive icon) - existing functionality
-- **Download as PDF** (outline, FileText icon) - new
-- **Print All** (outline, Printer icon) - new
+For small output sizes, the text rendered by JsBarcode at `fontSize: 16 * scale` becomes blurry and tiny.
 
-All three buttons share the same disabled state (disabled when generating or no values entered).
+**Fix**: Since we're removing `displayValue` from the image generator, the text in print/PDF will be rendered as actual HTML text (print) or PDF text (jsPDF), which is always sharp regardless of barcode scale. For the batch preview (new), render the value as a separate HTML element with consistent font sizing.
+
+## 3. Add Batch Preview (Isolated State)
+
+Currently the right-side preview panel always shows the Generate tab's barcode. When the Batch tab is active, it should show the batch-generated barcodes instead.
+
+**Changes**:
+- Add `generatedImages` state to `BatchGenerator` that stores generated barcode image results
+- After any generation action (ZIP/PDF/Print), also populate a preview array
+- Add a dedicated "Generate Preview" button that generates images for preview only
+- Create a `BatchPreview` component that displays the generated barcode images in a grid
+- In `Index.tsx`, track the active tab. When "batch" tab is active, show `BatchPreview` instead of `BarcodePreview` in the right panel
+- The batch preview state is entirely owned by `BatchGenerator` -- no shared state with Generate/Effects/Checksum
+
+**Files**:
+- New: `src/components/BatchPreview.tsx` - Grid display of batch barcode images with Print button
+- Modified: `src/components/BatchGenerator.tsx` - Add `generatedImages` state, pass to preview via callback
+- Modified: `src/pages/Index.tsx` - Track active tab, conditionally render BatchPreview or BarcodePreview
+
+## 4. Print Button Consistency
+
+Replace the current "Print All" full-width outline button with a Print button matching the BarcodePreview style:
+- Same styling: `variant="outline" size="sm"` with `rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90`
+- Place it in the BatchPreview header (next to a Copy-like position), not in the controls panel
+- Remove the "Print All" button from the BatchGenerator controls; printing is triggered from the preview panel
+
+## 5. Fix Blank Page After Print
+
+The print window remains open as `about:blank` after printing.
+
+**Fix**: Add an `afterprint` event listener to the print window that calls `printWindow.close()`. This applies to both the batch print and the single barcode print in BarcodePreview.
 
 ## Technical Details
 
 ### File Changes
 
+**`src/lib/barcodeImageGenerator.ts`**:
+- Change `displayValue: true` to `displayValue: false` in both `generateBarcodeImage` and `generateBarcodeBlob`
+- This eliminates the duplicate label since the value text is no longer baked into the PNG
+
+**`src/components/BatchPreview.tsx`** (new file):
+- Receives `images: BarcodeImageResult[]` and `onPrint: () => void` as props
+- Header row with "Batch Preview" title and Print button (matching BarcodePreview button style)
+- Grid layout showing all generated barcode images
+- Each image shows the barcode with a centered, sharp text label below it (HTML text, not baked into image)
+- Empty state when no images are generated yet
+
 **`src/components/BatchGenerator.tsx`**:
-- New state: `scale` (number, default 1)
-- New imports: `Printer`, `FileText`, `Maximize2` from lucide-react; `jspdf`
-- Extract a shared `generateBarcodeImage(value, format, scale)` helper that returns a PNG data URL, used by ZIP, PDF, and Print flows
-- The helper uses `normalizeForRendering` from barcodeUtils (matching what BarcodePreview does) and disables canvas image smoothing
-- New `printBatchBarcodes()` function: generates images, opens print window with grid layout
-- New `exportAsPDF()` function: generates images, creates jspdf document with grid layout, saves file
-- Updated UI with Output Size section and three action buttons
+- Add `generatedImages` state: `BarcodeImageResult[]`
+- Add `onImagesGenerated` callback prop to pass images up to parent
+- Add a "Generate Preview" button that generates all barcode images and stores them
+- Remove the "Print All" button (moved to BatchPreview)
+- ZIP and PDF generation also update `generatedImages`
 
-**`package.json`**: Add `jspdf` dependency
+**`src/pages/Index.tsx`**:
+- Add `activeTab` state tracking which tab is selected
+- Add `batchImages` state: `BarcodeImageResult[]`
+- Add `batchPrint` callback
+- When `activeTab === 'batch'`, render `BatchPreview` in the right panel instead of `BarcodePreview`
+- Other tabs continue showing `BarcodePreview` as before
 
-### Shared Barcode Image Generator
-```text
-generateBarcodeImage(value, format, scale)
-  |-> validate input
-  |-> create SVG via JsBarcode (with scaled params)
-  |-> serialize SVG -> load as Image -> draw to canvas (imageSmoothingEnabled = false)
-  |-> return { dataUrl, width, height }
+**`src/components/BarcodePreview.tsx`**:
+- Fix the print window to close after printing by adding `afterprint` event:
+```
+printWindow.addEventListener('afterprint', () => printWindow.close());
 ```
 
-### Print Window Layout
-- CSS grid with `grid-template-columns: repeat(auto-fill, minmax(250px, 1fr))`
-- Each cell: centered barcode image + value label in monospace font
-- Page break handling via `break-inside: avoid`
-- Auto-triggers `window.print()` after images load
+### Print Window Fix (both batch and single)
+```
+// After window.print() is called:
+printWindow.addEventListener('afterprint', () => {
+  printWindow.close();
+});
+```
 
-### PDF Layout
-- A4 page (210mm x 297mm) with 15mm margins
-- Calculate how many barcodes fit per row based on image width
-- 10mm gap between barcodes, 8mm gap between rows
-- Auto page-break when exceeding page height
-- Value text rendered below each barcode in 8pt font
+### BatchPreview Layout
+- Header: "Batch Preview" title + Print button (same style as BarcodePreview)
+- Body: Scrollable grid of barcode cards
+- Each card: barcode image (crisp rendering CSS) + centered monospace value label below
+- Empty state: icon + "Generate barcodes in the Batch tab" message
+
