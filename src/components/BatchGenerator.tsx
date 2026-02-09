@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
-import JsBarcode from 'jsbarcode';
+import { useState } from 'react';
 import { BarcodeFormat, BARCODE_FORMATS, validateInput } from '@/lib/barcodeUtils';
+import { generateBarcodeImage, generateBarcodeBlob } from '@/lib/barcodeImageGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,20 +8,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { Download, Shuffle, Play, Loader2, FileArchive } from 'lucide-react';
+import { Shuffle, Loader2, FileArchive, Printer, FileText, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const SCALE_PRESETS = [
+  { label: 'Small', value: 0.5 },
+  { label: 'Medium', value: 1 },
+  { label: 'Large', value: 2 },
+];
 
 export function BatchGenerator() {
   const [format, setFormat] = useState<BarcodeFormat>('CODE39');
   const [values, setValues] = useState('');
   const [count, setCount] = useState(10);
   const [stringLength, setStringLength] = useState(8);
+  const [scale, setScale] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const generateRandomString = (length: number, numeric: boolean = false): string => {
-    const chars = numeric 
+    const chars = numeric
       ? '0123456789'
       : '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     let result = '';
@@ -33,15 +39,13 @@ export function BatchGenerator() {
 
   const generateRandomValues = () => {
     const isNumericOnly = ['EAN13', 'EAN8', 'UPC', 'ITF14', 'ITF', 'CODE128C', 'MSI', 'MSI10', 'MSI11', 'pharmacode'].includes(format);
-    
+
     let length = stringLength;
-    // Adjust length for specific formats
     if (format === 'EAN13') length = 12;
     if (format === 'EAN8') length = 7;
     if (format === 'UPC') length = 11;
     if (format === 'ITF14') length = 13;
     if (format === 'ITF' && length % 2 !== 0) length = Math.max(2, length - 1);
-    
 
     const randomValues: string[] = [];
     for (let i = 0; i < count; i++) {
@@ -51,13 +55,11 @@ export function BatchGenerator() {
     toast.success(`Generated ${count} random values`);
   };
 
-  const generateBarcodes = async () => {
-    const valueList = values.split('\n').map(v => v.trim()).filter(v => v);
-    
-    if (valueList.length === 0) {
-      toast.error('Please enter at least one value');
-      return;
-    }
+  const getValueList = () => values.split('\n').map(v => v.trim()).filter(v => v);
+
+  const downloadAsZip = async () => {
+    const valueList = getValueList();
+    if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
 
     setIsGenerating(true);
     setProgress(0);
@@ -68,54 +70,10 @@ export function BatchGenerator() {
       const folder = zip.folder('barcodes');
 
       for (let i = 0; i < valueList.length; i++) {
-        const value = valueList[i];
-        const validation = validateInput(value, format);
-        
-        if (!validation.valid) {
-          console.warn(`Skipping invalid value: ${value} - ${validation.message}`);
-          continue;
+        const blob = await generateBarcodeBlob(valueList[i], format, scale);
+        if (blob && folder) {
+          folder.file(`${valueList[i]}.png`, blob);
         }
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        
-        try {
-          JsBarcode(svg, value, {
-            format: format,
-            width: 2,
-            height: 100,
-            displayValue: true,
-            fontSize: 16,
-            lineColor: '#000000',
-            background: '#FFFFFF',
-            margin: 10,
-            font: 'monospace',
-          });
-
-          // Convert SVG to PNG
-          const svgData = new XMLSerializer().serializeToString(svg);
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          const img = new Image();
-          
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              canvas.width = img.width;
-              canvas.height = img.height;
-              ctx?.drawImage(img, 0, 0);
-              resolve();
-            };
-            img.onerror = reject;
-            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-          });
-
-          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-          if (blob && folder) {
-            folder.file(`${value}.png`, blob);
-          }
-        } catch (e) {
-          console.warn(`Failed to generate barcode for: ${value}`, e);
-        }
-
         setProgress(((i + 1) / valueList.length) * 100);
       }
 
@@ -124,7 +82,6 @@ export function BatchGenerator() {
       link.href = URL.createObjectURL(content);
       link.download = `barcodes-${format}-${Date.now()}.zip`;
       link.click();
-      
       toast.success(`Downloaded ${valueList.length} barcodes`);
     } catch (error) {
       console.error('Batch generation error:', error);
@@ -134,6 +91,130 @@ export function BatchGenerator() {
       setProgress(0);
     }
   };
+
+  const printBatchBarcodes = async () => {
+    const valueList = getValueList();
+    if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
+
+    setIsGenerating(true);
+    setProgress(0);
+
+    try {
+      const images: { dataUrl: string; value: string }[] = [];
+      for (let i = 0; i < valueList.length; i++) {
+        const result = await generateBarcodeImage(valueList[i], format, scale);
+        if (result) images.push(result);
+        setProgress(((i + 1) / valueList.length) * 100);
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) { toast.error('Pop-up blocked. Please allow pop-ups.'); return; }
+
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Batch Barcodes</title><style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: monospace; padding: 15mm; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .cell { display: flex; flex-direction: column; align-items: center; break-inside: avoid; padding: 10px; }
+        .cell img {
+          max-width: 100%;
+          height: auto;
+          image-rendering: crisp-edges;
+          image-rendering: pixelated;
+          image-rendering: -webkit-optimize-contrast;
+        }
+        .cell span { margin-top: 6px; font-size: 11px; color: #333; }
+        @media print {
+          body { padding: 10mm; }
+          .cell { break-inside: avoid; }
+          img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+      </style></head><body><div class="grid">${
+        images.map(img => `<div class="cell"><img src="${img.dataUrl}" /><span>${img.value}</span></div>`).join('')
+      }</div><script>
+        const imgs = document.querySelectorAll('img');
+        let loaded = 0;
+        imgs.forEach(i => { if (i.complete) { loaded++; } else { i.onload = () => { loaded++; if(loaded>=imgs.length) window.print(); }; }});
+        if(loaded >= imgs.length) window.print();
+      </script></body></html>`);
+      printWindow.document.close();
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Print error:', error);
+      toast.error('Failed to prepare print');
+    } finally {
+      setIsGenerating(false);
+      setProgress(0);
+    }
+  };
+
+  const exportAsPDF = async () => {
+    const valueList = getValueList();
+    if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
+
+    setIsGenerating(true);
+    setProgress(0);
+
+    try {
+      const { jsPDF } = await import('jspdf');
+      const images: { dataUrl: string; width: number; height: number; value: string }[] = [];
+
+      for (let i = 0; i < valueList.length; i++) {
+        const result = await generateBarcodeImage(valueList[i], format, scale);
+        if (result) images.push(result);
+        setProgress(((i + 1) / valueList.length) * 100);
+      }
+
+      if (images.length === 0) { toast.error('No valid barcodes generated'); return; }
+
+      const pdf = new jsPDF('portrait', 'mm', 'a4');
+      const pageW = 210, pageH = 297, margin = 15, gap = 10, rowGap = 8;
+      const usableW = pageW - margin * 2;
+
+      // Scale image dimensions to mm (assuming 96 DPI)
+      const pxToMm = 25.4 / 96;
+      const imgWmm = images[0].width * pxToMm;
+      const imgHmm = images[0].height * pxToMm;
+      const labelH = 5;
+
+      const cols = Math.max(1, Math.floor((usableW + gap) / (imgWmm + gap)));
+      const cellW = (usableW - (cols - 1) * gap) / cols;
+      const scaleRatio = cellW / imgWmm;
+      const cellH = imgHmm * scaleRatio + labelH;
+
+      let x = margin, y = margin;
+
+      images.forEach((img, i) => {
+        if (y + cellH > pageH - margin) {
+          pdf.addPage();
+          y = margin;
+        }
+
+        const col = i % cols;
+        x = margin + col * (cellW + gap);
+
+        pdf.addImage(img.dataUrl, 'PNG', x, y, cellW, imgHmm * scaleRatio);
+        pdf.setFontSize(8);
+        pdf.setFont('courier');
+        pdf.text(img.value, x + cellW / 2, y + imgHmm * scaleRatio + 4, { align: 'center' });
+
+        if (col === cols - 1) {
+          y += cellH + rowGap;
+        }
+      });
+
+      const today = new Date().toISOString().split('T')[0];
+      pdf.save(`batch_barcodes_${today}.pdf`);
+      toast.success(`PDF saved with ${images.length} barcodes`);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error('Failed to export PDF');
+    } finally {
+      setIsGenerating(false);
+      setProgress(0);
+    }
+  };
+
+  const isDisabled = isGenerating || !values.trim();
 
   return (
     <div className="space-y-6">
@@ -154,10 +235,41 @@ export function BatchGenerator() {
         </Select>
       </div>
 
+      {/* Output Size */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Maximize2 className="h-4 w-4 text-muted-foreground" />
+          <Label>Output Size</Label>
+        </div>
+        <div className="flex gap-2">
+          {SCALE_PRESETS.map((p) => (
+            <Button
+              key={p.label}
+              variant={scale === p.value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setScale(p.value)}
+              className="flex-1"
+            >
+              {p.label} {p.value}x
+            </Button>
+          ))}
+        </div>
+        <div className="space-y-1">
+          <Slider
+            min={0.25}
+            max={4}
+            step={0.25}
+            value={[scale]}
+            onValueChange={([v]) => setScale(v)}
+          />
+          <p className="text-xs text-muted-foreground text-center">Custom: {scale}x</p>
+        </div>
+      </div>
+
       {/* Random Generation Controls */}
       <div className="p-4 bg-terminal-bg rounded-lg space-y-4">
         <p className="text-sm font-mono terminal-text">Random Generator</p>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-sm">Count</Label>
@@ -213,26 +325,21 @@ export function BatchGenerator() {
         </div>
       )}
 
-      {/* Generate Button */}
-      <Button 
-        onClick={generateBarcodes} 
-        className="w-full gap-2"
-        disabled={isGenerating || !values.trim()}
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <FileArchive className="h-4 w-4" />
-            Download All as ZIP
-          </>
-        )}
-      </Button>
-
-      <canvas ref={canvasRef} className="hidden" />
+      {/* Action Buttons */}
+      <div className="grid gap-2">
+        <Button onClick={downloadAsZip} className="w-full gap-2" disabled={isDisabled}>
+          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+          Download as ZIP
+        </Button>
+        <Button onClick={exportAsPDF} variant="outline" className="w-full gap-2" disabled={isDisabled}>
+          <FileText className="h-4 w-4" />
+          Download as PDF
+        </Button>
+        <Button onClick={printBatchBarcodes} variant="outline" className="w-full gap-2" disabled={isDisabled}>
+          <Printer className="h-4 w-4" />
+          Print All
+        </Button>
+      </div>
     </div>
   );
 }

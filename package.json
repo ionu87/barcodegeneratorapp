@@ -26,7 +26,7 @@
       "build/**/*"
     ],
     "win": {
-       "icon": "build/icon.ico",
+      "icon": "build/icon.ico",
       "target": [
         "nsis",
         "portable"
@@ -56,6 +56,7 @@
     "clsx": "^2.1.0",
     "file-saver": "^2.0.5",
     "jsbarcode": "^3.11.5",
+    "jspdf": "^4.1.0",
     "jszip": "^3.10.1",
     "lovable-tagger": "^1.1.13",
     "lucide-react": "^0.474.0",
