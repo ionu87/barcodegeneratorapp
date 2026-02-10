@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   calculateMod10, 
   calculateMod11, 
@@ -29,7 +29,11 @@ interface ChecksumResult {
   applicable: boolean;
 }
 
-export function ChecksumCalculator() {
+interface ChecksumCalculatorProps {
+  onChecksumData?: (input: string, checksums: ChecksumResult[]) => void;
+}
+
+export function ChecksumCalculator({ onChecksumData }: ChecksumCalculatorProps) {
   const [input, setInput] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
@@ -131,6 +135,13 @@ export function ChecksumCalculator() {
 
   const checksums = getChecksums();
 
+  // Notify parent of input/checksum changes
+  const prevDataRef = useRef('');
+  const dataKey = input + checksums.map(c => c.fullValue).join(',');
+  if (dataKey !== prevDataRef.current) {
+    prevDataRef.current = dataKey;
+    onChecksumData?.(input, checksums);
+  }
   const copyValue = (value: string, index: number) => {
     navigator.clipboard.writeText(value);
     setCopiedIndex(index);

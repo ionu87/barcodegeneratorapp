@@ -3,6 +3,7 @@ import { Header } from '@/components/Header';
 import { BarcodePreview } from '@/components/BarcodePreview';
 import { BarcodeControls } from '@/components/BarcodeControls';
 import { ChecksumCalculator } from '@/components/ChecksumCalculator';
+import { ChecksumPreview } from '@/components/ChecksumPreview';
 import { ImageEffects, ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
 import { BatchGenerator } from '@/components/BatchGenerator';
 import { BatchPreview } from '@/components/BatchPreview';
@@ -17,7 +18,14 @@ const Index = () => {
   const [effects, setEffects] = useState<ImageEffectsConfig>(getDefaultEffectsConfig());
   const [activeTab, setActiveTab] = useState('generator');
   const [batchImages, setBatchImages] = useState<BarcodeImageResult[]>([]);
+  const [checksumInput, setChecksumInput] = useState('');
+  const [checksumVariants, setChecksumVariants] = useState<{ name: string; fullValue: string; applicable: boolean }[]>([]);
   const validation = validateInput(config.text, config.format);
+
+  const handleChecksumData = useCallback((input: string, checksums: { name: string; fullValue: string; applicable: boolean }[]) => {
+    setChecksumInput(input);
+    setChecksumVariants(checksums);
+  }, []);
 
   const handleBatchPrint = useCallback(() => {
     if (batchImages.length === 0) return;
@@ -36,13 +44,13 @@ const Index = () => {
     </style></head><body><div class="grid">${
       batchImages.map(img => `<div class="cell"><img src="${img.dataUrl}" /><span>${img.value}</span></div>`).join('')
     }</div><script>
+      window.addEventListener('afterprint', function() { window.close(); });
       const imgs = document.querySelectorAll('img');
       let loaded = 0;
       imgs.forEach(i => { if (i.complete) { loaded++; } else { i.onload = () => { loaded++; if(loaded>=imgs.length) window.print(); }; }});
       if(loaded >= imgs.length) window.print();
     </script></body></html>`);
     printWindow.document.close();
-    printWindow.addEventListener('afterprint', () => printWindow.close());
   }, [batchImages]);
 
   return (
@@ -107,7 +115,7 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="checksum" className="mt-0">
-                  <ChecksumCalculator />
+                  <ChecksumCalculator onChecksumData={handleChecksumData} />
                 </TabsContent>
               </div>
             </Tabs>
@@ -120,6 +128,11 @@ const Index = () => {
                 images={batchImages}
                 onPrint={handleBatchPrint}
                 isGenerating={false}
+              />
+            ) : activeTab === 'checksum' ? (
+              <ChecksumPreview
+                variants={checksumVariants}
+                inputValue={checksumInput}
               />
             ) : (
               <BarcodePreview
