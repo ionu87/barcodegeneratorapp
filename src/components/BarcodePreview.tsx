@@ -429,11 +429,11 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       `);
       printWindow.document.close();
 
+      printWindow.addEventListener('afterprint', () => printWindow.close());
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.focus();
           printWindow.print();
-          printWindow.close();
         }, 100);
       };
     };

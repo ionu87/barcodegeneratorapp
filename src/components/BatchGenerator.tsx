@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BarcodeFormat, BARCODE_FORMATS, validateInput } from '@/lib/barcodeUtils';
-import { generateBarcodeImage, generateBarcodeBlob } from '@/lib/barcodeImageGenerator';
+import { generateBarcodeImage, generateBarcodeBlob, BarcodeImageResult } from '@/lib/barcodeImageGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { Shuffle, Loader2, FileArchive, Printer, FileText, Maximize2 } from 'lucide-react';
+import { Shuffle, Loader2, FileArchive, FileText, Maximize2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SCALE_PRESETS = [
@@ -17,7 +17,11 @@ const SCALE_PRESETS = [
   { label: 'Large', value: 2 },
 ];
 
-export function BatchGenerator() {
+interface BatchGeneratorProps {
+  onImagesGenerated?: (images: BarcodeImageResult[]) => void;
+}
+
+export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
   const [format, setFormat] = useState<BarcodeFormat>('CODE39');
   const [values, setValues] = useState('');
   const [count, setCount] = useState(10);
@@ -92,7 +96,7 @@ export function BatchGenerator() {
     }
   };
 
-  const printBatchBarcodes = async () => {
+  const generatePreview = async () => {
     const valueList = getValueList();
     if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
 
@@ -100,47 +104,17 @@ export function BatchGenerator() {
     setProgress(0);
 
     try {
-      const images: { dataUrl: string; value: string }[] = [];
+      const images: BarcodeImageResult[] = [];
       for (let i = 0; i < valueList.length; i++) {
         const result = await generateBarcodeImage(valueList[i], format, scale);
         if (result) images.push(result);
         setProgress(((i + 1) / valueList.length) * 100);
       }
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) { toast.error('Pop-up blocked. Please allow pop-ups.'); return; }
-
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Batch Barcodes</title><style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: monospace; padding: 15mm; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .cell { display: flex; flex-direction: column; align-items: center; break-inside: avoid; padding: 10px; }
-        .cell img {
-          max-width: 100%;
-          height: auto;
-          image-rendering: crisp-edges;
-          image-rendering: pixelated;
-          image-rendering: -webkit-optimize-contrast;
-        }
-        .cell span { margin-top: 6px; font-size: 11px; color: #333; }
-        @media print {
-          body { padding: 10mm; }
-          .cell { break-inside: avoid; }
-          img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-        }
-      </style></head><body><div class="grid">${
-        images.map(img => `<div class="cell"><img src="${img.dataUrl}" /><span>${img.value}</span></div>`).join('')
-      }</div><script>
-        const imgs = document.querySelectorAll('img');
-        let loaded = 0;
-        imgs.forEach(i => { if (i.complete) { loaded++; } else { i.onload = () => { loaded++; if(loaded>=imgs.length) window.print(); }; }});
-        if(loaded >= imgs.length) window.print();
-      </script></body></html>`);
-      printWindow.document.close();
-      toast.success('Print dialog opened');
+      onImagesGenerated?.(images);
+      toast.success(`Generated ${images.length} barcode previews`);
     } catch (error) {
-      console.error('Print error:', error);
-      toast.error('Failed to prepare print');
+      console.error('Preview generation error:', error);
+      toast.error('Failed to generate previews');
     } finally {
       setIsGenerating(false);
       setProgress(0);
@@ -327,17 +301,17 @@ export function BatchGenerator() {
 
       {/* Action Buttons */}
       <div className="grid gap-2">
-        <Button onClick={downloadAsZip} className="w-full gap-2" disabled={isDisabled}>
-          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+        <Button onClick={generatePreview} className="w-full gap-2" disabled={isDisabled}>
+          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+          Generate Preview
+        </Button>
+        <Button onClick={downloadAsZip} variant="outline" className="w-full gap-2" disabled={isDisabled}>
+          <FileArchive className="h-4 w-4" />
           Download as ZIP
         </Button>
         <Button onClick={exportAsPDF} variant="outline" className="w-full gap-2" disabled={isDisabled}>
           <FileText className="h-4 w-4" />
           Download as PDF
-        </Button>
-        <Button onClick={printBatchBarcodes} variant="outline" className="w-full gap-2" disabled={isDisabled}>
-          <Printer className="h-4 w-4" />
-          Print All
         </Button>
       </div>
     </div>
