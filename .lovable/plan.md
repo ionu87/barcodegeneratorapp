@@ -1,97 +1,95 @@
 
 
-# Fix Batch Screen Issues
+# Multi-Feature Enhancement Plan
 
-## 1. Fix Barcode Label Duplication
+## 1. Batch Auto-Preview (Remove "Generate Preview" Button)
 
-The barcode value appears twice because:
-- `barcodeImageGenerator.ts` passes `displayValue: true` to JsBarcode, which renders the value text inside the barcode image itself
-- The print window and PDF export then add a second label (`<span>` / `pdf.text()`) below the image
+Currently, the Batch tab requires clicking "Generate Preview" to see barcodes. Instead, barcodes will auto-generate whenever the `values` or `format` or `scale` changes.
 
-**Fix**: Set `displayValue: false` in `barcodeImageGenerator.ts` so the PNG images contain only the barcode bars. The value text will be rendered separately in print/PDF layouts with proper styling, giving full control over text quality and positioning.
+**Changes in `BatchGenerator.tsx`:**
+- Replace the explicit `generatePreview` function with a `useEffect` that triggers whenever `values`, `format`, or `scale` change
+- Use a debounce (300ms) to avoid excessive re-renders while typing
+- Remove the "Generate Preview" button from the UI
+- Call `onImagesGenerated` automatically after generation
 
-## 2. Improve Barcode Value Text Quality
+## 2. Reset Dimensions Button
 
-For small output sizes, the text rendered by JsBarcode at `fontSize: 16 * scale` becomes blurry and tiny.
+Add a "Reset" button next to the "Dimensions" header in `BarcodeControls.tsx`.
 
-**Fix**: Since we're removing `displayValue` from the image generator, the text in print/PDF will be rendered as actual HTML text (print) or PDF text (jsPDF), which is always sharp regardless of barcode scale. For the batch preview (new), render the value as a separate HTML element with consistent font sizing.
+**Changes in `BarcodeControls.tsx`:**
+- Add a small "Reset" button (using `RotateCcw` icon) next to the Dimensions section header
+- On click, reset `width`, `height`, `margin`, `fontSize`, and `scale` to their defaults from `getDefaultConfig()`
 
-## 3. Add Batch Preview (Isolated State)
+## 3. Move Output Size on Generate Screen
 
-Currently the right-side preview panel always shows the Generate tab's barcode. When the Batch tab is active, it should show the batch-generated barcodes instead.
+Move the Output Size section in `BarcodeControls.tsx` from its current position (after Display Options, lines 300-362) to directly after the Dimensions section (after line 240, before Colors).
 
-**Changes**:
-- Add `generatedImages` state to `BatchGenerator` that stores generated barcode image results
-- After any generation action (ZIP/PDF/Print), also populate a preview array
-- Add a dedicated "Generate Preview" button that generates images for preview only
-- Create a `BatchPreview` component that displays the generated barcode images in a grid
-- In `Index.tsx`, track the active tab. When "batch" tab is active, show `BatchPreview` instead of `BarcodePreview` in the right panel
-- The batch preview state is entirely owned by `BatchGenerator` -- no shared state with Generate/Effects/Checksum
+## 4. Reset Effects Button
 
-**Files**:
-- New: `src/components/BatchPreview.tsx` - Grid display of batch barcode images with Print button
-- Modified: `src/components/BatchGenerator.tsx` - Add `generatedImages` state, pass to preview via callback
-- Modified: `src/pages/Index.tsx` - Track active tab, conditionally render BatchPreview or BarcodePreview
+Add a "Reset Effects" button in `ImageEffects.tsx`.
 
-## 4. Print Button Consistency
+**Changes in `ImageEffects.tsx`:**
+- Add a "Reset" button next to the "Enable Image Effects" toggle or at the bottom
+- On click, call `onChange(getDefaultEffectsConfig())`
 
-Replace the current "Print All" full-width outline button with a Print button matching the BarcodePreview style:
-- Same styling: `variant="outline" size="sm"` with `rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90`
-- Place it in the BatchPreview header (next to a Copy-like position), not in the controls panel
-- Remove the "Print All" button from the BatchGenerator controls; printing is triggered from the preview panel
+## 5. Print Button on Checksum Preview
 
-## 5. Fix Blank Page After Print
+Add a Print button to the `ChecksumPreview.tsx` header, matching the style of the BarcodePreview Print button.
 
-The print window remains open as `about:blank` after printing.
+**Changes in `ChecksumPreview.tsx`:**
+- Add a Print button in the header row (next to the variant count)
+- Implement a print function that opens a print window with all checksum variant barcodes in a grid
+- Use `afterprint` event to close the window
 
-**Fix**: Add an `afterprint` event listener to the print window that calls `printWindow.close()`. This applies to both the batch print and the single barcode print in BarcodePreview.
+## 6. Button Style Consistency
+
+Update Copy and Print buttons across all screens to match the Download PNG button's style (the `download-btn` class with filled background).
+
+**Changes across `BarcodePreview.tsx`, `BatchPreview.tsx`, `ChecksumPreview.tsx`:**
+- Change Copy and Print buttons from `variant="outline"` with `bg-secondary` to use the same primary styling as Download PNG: `className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"`
+
+## 7. Contrast and Visibility Fixes
+
+Fix the "Enable Image Effects" toggle area and "Random Generator" section which use `bg-terminal-bg` and `terminal-text` -- in light mode, `terminal-bg` is near-black (`240 10% 4%`) and `terminal-text` is red (`0 100% 50%`), making text unreadable.
+
+**Changes in `src/index.css`:**
+- Update light mode `--terminal-bg` to a lighter value (e.g., `240 5% 96%` matching secondary)
+- Update light mode `--terminal-text` to a readable dark color (e.g., `240 10% 20%`)
+
+**Alternative (component-level, preferred for minimal side effects):**
+- In `ImageEffects.tsx`: Change the toggle container from `bg-terminal-bg` to `bg-secondary/50` and label from `text-terminal-text` to `text-foreground`
+- In `BatchGenerator.tsx`: Change the Random Generator container from `bg-terminal-bg` to `bg-secondary/50` and text from `terminal-text` to `text-foreground`
 
 ## Technical Details
 
-### File Changes
+### Files Modified
 
-**`src/lib/barcodeImageGenerator.ts`**:
-- Change `displayValue: true` to `displayValue: false` in both `generateBarcodeImage` and `generateBarcodeBlob`
-- This eliminates the duplicate label since the value text is no longer baked into the PNG
+| File | Changes |
+|------|---------|
+| `src/components/BatchGenerator.tsx` | Auto-preview via useEffect with debounce; remove Generate Preview button; fix Random Generator contrast |
+| `src/components/BarcodeControls.tsx` | Add Reset Dimensions button; move Output Size below Dimensions |
+| `src/components/ImageEffects.tsx` | Add Reset Effects button; fix Enable Effects toggle contrast |
+| `src/components/ChecksumPreview.tsx` | Add Print button with print window logic |
+| `src/components/BarcodePreview.tsx` | Update Copy/Print button styles to match Download PNG |
+| `src/components/BatchPreview.tsx` | Update Print button style to match Download PNG |
 
-**`src/components/BatchPreview.tsx`** (new file):
-- Receives `images: BarcodeImageResult[]` and `onPrint: () => void` as props
-- Header row with "Batch Preview" title and Print button (matching BarcodePreview button style)
-- Grid layout showing all generated barcode images
-- Each image shows the barcode with a centered, sharp text label below it (HTML text, not baked into image)
-- Empty state when no images are generated yet
+### Auto-Preview Debounce Logic
 
-**`src/components/BatchGenerator.tsx`**:
-- Add `generatedImages` state: `BarcodeImageResult[]`
-- Add `onImagesGenerated` callback prop to pass images up to parent
-- Add a "Generate Preview" button that generates all barcode images and stores them
-- Remove the "Print All" button (moved to BatchPreview)
-- ZIP and PDF generation also update `generatedImages`
-
-**`src/pages/Index.tsx`**:
-- Add `activeTab` state tracking which tab is selected
-- Add `batchImages` state: `BarcodeImageResult[]`
-- Add `batchPrint` callback
-- When `activeTab === 'batch'`, render `BatchPreview` in the right panel instead of `BarcodePreview`
-- Other tabs continue showing `BarcodePreview` as before
-
-**`src/components/BarcodePreview.tsx`**:
-- Fix the print window to close after printing by adding `afterprint` event:
-```
-printWindow.addEventListener('afterprint', () => printWindow.close());
+```text
+useEffect(() => {
+  if no values -> clear images, return
+  set debounce timer (300ms)
+  on trigger -> generate all barcode images async
+  call onImagesGenerated(images)
+  cleanup: clear timer
+}, [values, format, scale])
 ```
 
-### Print Window Fix (both batch and single)
-```
-// After window.print() is called:
-printWindow.addEventListener('afterprint', () => {
-  printWindow.close();
-});
-```
+### Reset Dimensions Defaults
 
-### BatchPreview Layout
-- Header: "Batch Preview" title + Print button (same style as BarcodePreview)
-- Body: Scrollable grid of barcode cards
-- Each card: barcode image (crisp rendering CSS) + centered monospace value label below
-- Empty state: icon + "Generate barcodes in the Batch tab" message
+Resets to: `width: 2`, `height: 100`, `margin: 10`, `fontSize: 16`, `scale: 1`
+
+### Reset Effects Defaults
+
+Resets to: `getDefaultEffectsConfig()` (scale 1, contrast 1, brightness 0, blur 0, noise 0, rotation 0, perspective 0, lineThickness 1, lineSpacing 1, enableEffects false)
 
