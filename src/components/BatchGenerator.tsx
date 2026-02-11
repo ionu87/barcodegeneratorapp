@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BarcodeFormat, BARCODE_FORMATS, validateInput } from '@/lib/barcodeUtils';
 import { generateBarcodeImage, generateBarcodeBlob, BarcodeImageResult } from '@/lib/barcodeImageGenerator';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { Shuffle, Loader2, FileArchive, FileText, Maximize2, Eye } from 'lucide-react';
+import { Shuffle, Loader2, FileArchive, FileText, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SCALE_PRESETS = [
@@ -29,6 +29,33 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
   const [scale, setScale] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Auto-preview: generate images whenever values, format, or scale change
+  useEffect(() => {
+    const valueList = values.split('\n').map(v => v.trim()).filter(v => v);
+    if (valueList.length === 0) {
+      onImagesGenerated?.([]);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const images: BarcodeImageResult[] = [];
+        for (const val of valueList) {
+          const result = await generateBarcodeImage(val, format, scale);
+          if (result) images.push(result);
+        }
+        onImagesGenerated?.(images);
+      } catch (error) {
+        console.error('Auto-preview error:', error);
+      }
+    }, 300);
+
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [values, format, scale, onImagesGenerated]);
 
   const generateRandomString = (length: number, numeric: boolean = false): string => {
     const chars = numeric
@@ -96,31 +123,6 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
     }
   };
 
-  const generatePreview = async () => {
-    const valueList = getValueList();
-    if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
-
-    setIsGenerating(true);
-    setProgress(0);
-
-    try {
-      const images: BarcodeImageResult[] = [];
-      for (let i = 0; i < valueList.length; i++) {
-        const result = await generateBarcodeImage(valueList[i], format, scale);
-        if (result) images.push(result);
-        setProgress(((i + 1) / valueList.length) * 100);
-      }
-      onImagesGenerated?.(images);
-      toast.success(`Generated ${images.length} barcode previews`);
-    } catch (error) {
-      console.error('Preview generation error:', error);
-      toast.error('Failed to generate previews');
-    } finally {
-      setIsGenerating(false);
-      setProgress(0);
-    }
-  };
-
   const exportAsPDF = async () => {
     const valueList = getValueList();
     if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
@@ -144,7 +146,6 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
       const pageW = 210, pageH = 297, margin = 15, gap = 10, rowGap = 8;
       const usableW = pageW - margin * 2;
 
-      // Scale image dimensions to mm (assuming 96 DPI)
       const pxToMm = 25.4 / 96;
       const imgWmm = images[0].width * pxToMm;
       const imgHmm = images[0].height * pxToMm;
@@ -241,8 +242,8 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
       </div>
 
       {/* Random Generation Controls */}
-      <div className="p-4 bg-terminal-bg rounded-lg space-y-4">
-        <p className="text-sm font-mono terminal-text">Random Generator</p>
+      <div className="p-4 bg-secondary/50 rounded-lg space-y-4">
+        <p className="text-sm font-mono text-foreground">Random Generator</p>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -301,10 +302,6 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
 
       {/* Action Buttons */}
       <div className="grid gap-2">
-        <Button onClick={generatePreview} className="w-full gap-2" disabled={isDisabled}>
-          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-          Generate Preview
-        </Button>
         <Button onClick={downloadAsZip} variant="outline" className="w-full gap-2" disabled={isDisabled}>
           <FileArchive className="h-4 w-4" />
           Download as ZIP

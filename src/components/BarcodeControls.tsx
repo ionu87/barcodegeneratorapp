@@ -1,10 +1,11 @@
-import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, ChecksumType, getApplicableChecksums, QualityLevel } from '@/lib/barcodeUtils';
+import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, ChecksumType, getApplicableChecksums, getDefaultConfig, QualityLevel } from '@/lib/barcodeUtils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
- import { Barcode, Palette, Ruler, Hash, Maximize2 } from 'lucide-react';
+import { Barcode, Palette, Ruler, Hash, Maximize2, RotateCcw } from 'lucide-react';
 import { QualitySegmentedControl } from '@/components/QualitySegmentedControl';
 import { InfoTooltip } from '@/components/InfoTooltip';
 
@@ -21,6 +22,19 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
 
   const formats1D = BARCODE_FORMATS.filter(f => f.category === '1D');
   const formats2D = BARCODE_FORMATS.filter(f => f.category === '2D');
+
+  const defaults = getDefaultConfig();
+
+  const resetDimensions = () => {
+    onChange({
+      ...config,
+      width: defaults.width,
+      height: defaults.height,
+      margin: defaults.margin,
+      fontSize: defaults.fontSize,
+      scale: defaults.scale,
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -169,11 +183,22 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
 
       {/* Dimensions */}
       <div className="space-y-5">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Ruler className="h-4 w-4 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Ruler className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-semibold">Dimensions</span>
           </div>
-          <span className="font-semibold">Dimensions</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetDimensions}
+            className="gap-1.5 h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset
+          </Button>
         </div>
         
         <div className="space-y-5 pl-1">
@@ -239,6 +264,70 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
         </div>
       </div>
 
+      {/* Output Scale - moved below Dimensions */}
+      <div className="space-y-5">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Maximize2 className="h-4 w-4 text-primary" />
+          </div>
+          <span className="font-semibold">Output Size</span>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => onChange({ ...config, scale: 0.5 })}
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              config.scale === 0.5
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+          >
+            Small
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...config, scale: 1 })}
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              config.scale === 1
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+          >
+            Medium
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...config, scale: 2 })}
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              config.scale === 2
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+          >
+            Large
+          </button>
+        </div>
+        
+        <div className="space-y-3 pl-1">
+          <div className="flex justify-between text-sm">
+            <Label className="text-muted-foreground">Custom Scale</Label>
+            <span className="font-mono text-primary font-medium">{config.scale.toFixed(1)}x</span>
+          </div>
+          <Slider
+            value={[config.scale]}
+            onValueChange={([value]) => onChange({ ...config, scale: value })}
+            min={0.25}
+            max={4}
+            step={0.25}
+            className="w-full"
+          />
+          <p className="text-xs text-muted-foreground">
+            0.25x = tiny labels • 1x = standard • 4x = large prints
+          </p>
+        </div>
+      </div>
+
       {/* Colors */}
       <div className="space-y-5">
         <div className="flex items-center gap-2.5">
@@ -296,70 +385,6 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           onCheckedChange={(checked) => onChange({ ...config, displayValue: checked })}
         />
       </div>
-
-       {/* Output Scale */}
-       <div className="space-y-5">
-         <div className="flex items-center gap-2.5">
-           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-             <Maximize2 className="h-4 w-4 text-primary" />
-           </div>
-           <span className="font-semibold">Output Size</span>
-         </div>
-         
-         <div className="grid grid-cols-3 gap-2 mb-4">
-           <button
-             type="button"
-             onClick={() => onChange({ ...config, scale: 0.5 })}
-             className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-               config.scale === 0.5
-                 ? 'bg-primary text-primary-foreground shadow-lg'
-                 : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
-             }`}
-           >
-             Small
-           </button>
-           <button
-             type="button"
-             onClick={() => onChange({ ...config, scale: 1 })}
-             className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-               config.scale === 1
-                 ? 'bg-primary text-primary-foreground shadow-lg'
-                 : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
-             }`}
-           >
-             Medium
-           </button>
-           <button
-             type="button"
-             onClick={() => onChange({ ...config, scale: 2 })}
-             className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-               config.scale === 2
-                 ? 'bg-primary text-primary-foreground shadow-lg'
-                 : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
-             }`}
-           >
-             Large
-           </button>
-         </div>
-         
-         <div className="space-y-3 pl-1">
-           <div className="flex justify-between text-sm">
-             <Label className="text-muted-foreground">Custom Scale</Label>
-             <span className="font-mono text-primary font-medium">{config.scale.toFixed(1)}x</span>
-           </div>
-           <Slider
-             value={[config.scale]}
-             onValueChange={([value]) => onChange({ ...config, scale: value })}
-             min={0.25}
-             max={4}
-             step={0.25}
-             className="w-full"
-           />
-           <p className="text-xs text-muted-foreground">
-             0.25x = tiny labels • 1x = standard • 4x = large prints
-           </p>
-         </div>
-       </div>
     </div>
   );
 }

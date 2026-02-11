@@ -502,21 +502,19 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         <h2 className="text-lg font-medium text-muted-foreground">Preview</h2>
         <div className="flex gap-3">
           <Button
-            variant="outline"
             size="sm"
             onClick={copyToClipboard}
             disabled={!isValid || !!renderError}
-            className="gap-2 rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90 text-foreground"
+            className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
           >
-            {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy'}
           </Button>
            <Button
-             variant="outline"
              size="sm"
              onClick={printBarcode}
              disabled={!isValid || !!renderError}
-             className="gap-2 rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90 text-foreground"
+             className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
            >
              <Printer className="h-4 w-4" />
              Print
