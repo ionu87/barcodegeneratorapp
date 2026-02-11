@@ -1,6 +1,6 @@
 import { BarcodeImageResult } from '@/lib/barcodeImageGenerator';
 import { Button } from '@/components/ui/button';
-import { Printer, AlertCircle, Layers } from 'lucide-react';
+import { Printer, Layers } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface BatchPreviewProps {
@@ -17,11 +17,10 @@ export function BatchPreview({ images, onPrint, isGenerating }: BatchPreviewProp
         <h2 className="text-lg font-medium text-muted-foreground">Batch Preview</h2>
         {images.length > 0 && (
           <Button
-            variant="outline"
             size="sm"
             onClick={onPrint}
             disabled={isGenerating}
-            className="gap-2 rounded-xl h-10 px-4 border-border/50 bg-secondary hover:bg-secondary/90 text-foreground"
+            className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
           >
             <Printer className="h-4 w-4" />
             Print
@@ -44,7 +43,7 @@ export function BatchPreview({ images, onPrint, isGenerating }: BatchPreviewProp
                 <Layers className="h-8 w-8 text-muted-foreground/50" />
               </div>
               <p className="font-semibold text-lg">No batch barcodes yet</p>
-              <p className="text-sm mt-1 text-muted-foreground/70">Generate barcodes in the Batch tab to preview them here</p>
+              <p className="text-sm mt-1 text-muted-foreground/70">Enter values in the Batch tab to preview them here</p>
             </div>
           </div>
         ) : (

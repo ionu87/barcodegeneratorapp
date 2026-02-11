@@ -1,7 +1,8 @@
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Droplets, Sun, RotateCw, ZoomIn, Waves, CircleDot, Columns, GripVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sparkles, Droplets, Sun, RotateCw, ZoomIn, Waves, CircleDot, Columns, GripVertical, RotateCcw } from 'lucide-react';
 
 export interface ImageEffectsConfig {
   scale: number;
@@ -44,10 +45,10 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
   return (
     <div className="space-y-6">
       {/* Enable Effects Toggle */}
-      <div className="flex items-center justify-between p-3 bg-terminal-bg rounded-lg">
+      <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <Label htmlFor="enable-effects" className="text-sm cursor-pointer text-terminal-text font-mono">
+          <Label htmlFor="enable-effects" className="text-sm cursor-pointer text-foreground font-mono">
             Enable Image Effects
           </Label>
         </div>
@@ -59,6 +60,20 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
       </div>
 
       <div className={`space-y-5 transition-opacity ${config.enableEffects ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+        {/* Reset Effects Button */}
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange({ ...getDefaultEffectsConfig(), enableEffects: true })}
+            className="gap-1.5 h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+            disabled={!config.enableEffects}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset Effects
+          </Button>
+        </div>
+
         {/* Scale */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -68,15 +83,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.scale.toFixed(2)}x</span>
             </div>
           </div>
-          <Slider
-            value={[config.scale]}
-            onValueChange={([value]) => updateConfig({ scale: value })}
-            min={0.5}
-            max={2}
-            step={0.05}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.scale]} onValueChange={([value]) => updateConfig({ scale: value })} min={0.5} max={2} step={0.05} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Contrast */}
@@ -88,15 +95,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.contrast.toFixed(2)}</span>
             </div>
           </div>
-          <Slider
-            value={[config.contrast]}
-            onValueChange={([value]) => updateConfig({ contrast: value })}
-            min={0.2}
-            max={2}
-            step={0.05}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.contrast]} onValueChange={([value]) => updateConfig({ contrast: value })} min={0.2} max={2} step={0.05} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Brightness */}
@@ -108,15 +107,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.brightness}</span>
             </div>
           </div>
-          <Slider
-            value={[config.brightness]}
-            onValueChange={([value]) => updateConfig({ brightness: value })}
-            min={-100}
-            max={100}
-            step={5}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.brightness]} onValueChange={([value]) => updateConfig({ brightness: value })} min={-100} max={100} step={5} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Blur */}
@@ -128,15 +119,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.blur}px</span>
             </div>
           </div>
-          <Slider
-            value={[config.blur]}
-            onValueChange={([value]) => updateConfig({ blur: value })}
-            min={0}
-            max={10}
-            step={0.5}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.blur]} onValueChange={([value]) => updateConfig({ blur: value })} min={0} max={10} step={0.5} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Noise */}
@@ -148,15 +131,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.noise}%</span>
             </div>
           </div>
-          <Slider
-            value={[config.noise]}
-            onValueChange={([value]) => updateConfig({ noise: value })}
-            min={0}
-            max={50}
-            step={1}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.noise]} onValueChange={([value]) => updateConfig({ noise: value })} min={0} max={50} step={1} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Rotation */}
@@ -168,15 +143,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.rotation}°</span>
             </div>
           </div>
-          <Slider
-            value={[config.rotation]}
-            onValueChange={([value]) => updateConfig({ rotation: value })}
-            min={-15}
-            max={15}
-            step={0.5}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.rotation]} onValueChange={([value]) => updateConfig({ rotation: value })} min={-15} max={15} step={0.5} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Perspective */}
@@ -190,16 +157,9 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.perspective}%</span>
             </div>
           </div>
-          <Slider
-            value={[config.perspective]}
-            onValueChange={([value]) => updateConfig({ perspective: value })}
-            min={0}
-            max={20}
-            step={1}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.perspective]} onValueChange={([value]) => updateConfig({ perspective: value })} min={0} max={20} step={1} className="w-full" disabled={!config.enableEffects} />
         </div>
+
         {/* Line Thickness */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -209,15 +169,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.lineThickness.toFixed(2)}x</span>
             </div>
           </div>
-          <Slider
-            value={[config.lineThickness]}
-            onValueChange={([value]) => updateConfig({ lineThickness: value })}
-            min={0.5}
-            max={2}
-            step={0.1}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.lineThickness]} onValueChange={([value]) => updateConfig({ lineThickness: value })} min={0.5} max={2} step={0.1} className="w-full" disabled={!config.enableEffects} />
         </div>
 
         {/* Line Spacing */}
@@ -229,15 +181,7 @@ export function ImageEffects({ config, onChange }: ImageEffectsProps) {
               <span className="font-mono text-muted-foreground">{config.lineSpacing.toFixed(2)}x</span>
             </div>
           </div>
-          <Slider
-            value={[config.lineSpacing]}
-            onValueChange={([value]) => updateConfig({ lineSpacing: value })}
-            min={0.5}
-            max={2}
-            step={0.1}
-            className="w-full"
-            disabled={!config.enableEffects}
-          />
+          <Slider value={[config.lineSpacing]} onValueChange={([value]) => updateConfig({ lineSpacing: value })} min={0.5} max={2} step={0.1} className="w-full" disabled={!config.enableEffects} />
         </div>
       </div>
 
