@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { BarcodePreview } from '@/components/BarcodePreview';
 import { BarcodeControls } from '@/components/BarcodeControls';
 import { ChecksumCalculator } from '@/components/ChecksumCalculator';
 import { ChecksumPreview } from '@/components/ChecksumPreview';
 import { ImageEffects, ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
-import { BatchGenerator } from '@/components/BatchGenerator';
+import { BatchGenerator, BatchActions } from '@/components/BatchGenerator';
 import { BatchPreview } from '@/components/BatchPreview';
 import { BarcodeConfig, getDefaultConfig, validateInput } from '@/lib/barcodeUtils';
 import { BarcodeImageResult } from '@/lib/barcodeImageGenerator';
@@ -20,6 +20,7 @@ const Index = () => {
   const [batchImages, setBatchImages] = useState<BarcodeImageResult[]>([]);
   const [checksumInput, setChecksumInput] = useState('');
   const [checksumVariants, setChecksumVariants] = useState<{ name: string; fullValue: string; applicable: boolean }[]>([]);
+  const batchActionsRef = useRef<BatchActions | null>(null);
   const validation = validateInput(config.text, config.format);
 
   const handleChecksumData = useCallback((input: string, checksums: { name: string; fullValue: string; applicable: boolean }[]) => {
@@ -111,7 +112,10 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="batch" className="mt-0">
-                  <BatchGenerator onImagesGenerated={setBatchImages} />
+                  <BatchGenerator
+                    onImagesGenerated={setBatchImages}
+                    onActionsReady={(actions) => { batchActionsRef.current = actions; }}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="checksum" className="mt-0">
@@ -127,7 +131,10 @@ const Index = () => {
               <BatchPreview
                 images={batchImages}
                 onPrint={handleBatchPrint}
-                isGenerating={false}
+                onDownloadZip={() => batchActionsRef.current?.downloadAsZip()}
+                onExportPDF={() => batchActionsRef.current?.exportAsPDF()}
+                isGenerating={batchActionsRef.current?.isGenerating ?? false}
+                actionsDisabled={batchActionsRef.current?.isDisabled ?? true}
               />
             ) : activeTab === 'checksum' ? (
               <ChecksumPreview

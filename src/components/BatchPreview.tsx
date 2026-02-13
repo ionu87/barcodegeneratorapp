@@ -1,30 +1,57 @@
 import { BarcodeImageResult } from '@/lib/barcodeImageGenerator';
 import { Button } from '@/components/ui/button';
-import { Printer, Layers } from 'lucide-react';
+import { Printer, Layers, FileArchive, FileText } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface BatchPreviewProps {
   images: BarcodeImageResult[];
   onPrint: () => void;
+  onDownloadZip?: () => void;
+  onExportPDF?: () => void;
   isGenerating: boolean;
+  actionsDisabled?: boolean;
 }
 
-export function BatchPreview({ images, onPrint, isGenerating }: BatchPreviewProps) {
+export function BatchPreview({ images, onPrint, onDownloadZip, onExportPDF, isGenerating, actionsDisabled }: BatchPreviewProps) {
+  const btnDisabled = isGenerating || actionsDisabled;
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header with Print button */}
+      {/* Header with action buttons */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-medium text-muted-foreground">Batch Preview</h2>
         {images.length > 0 && (
-          <Button
-            size="sm"
-            onClick={onPrint}
-            disabled={isGenerating}
-            className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
-          >
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onDownloadZip}
+              disabled={btnDisabled}
+              className="gap-2 rounded-xl h-10 px-4 font-medium"
+            >
+              <FileArchive className="h-4 w-4" />
+              ZIP
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onExportPDF}
+              disabled={btnDisabled}
+              className="gap-2 rounded-xl h-10 px-4 font-medium"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
+            </Button>
+            <Button
+              size="sm"
+              onClick={onPrint}
+              disabled={isGenerating}
+              className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
+            >
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </div>
         )}
       </div>
 

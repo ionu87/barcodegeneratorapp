@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { Shuffle, Loader2, FileArchive, FileText, Maximize2 } from 'lucide-react';
+import { Shuffle, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SCALE_PRESETS = [
@@ -17,11 +17,19 @@ const SCALE_PRESETS = [
   { label: 'Large', value: 2 },
 ];
 
-interface BatchGeneratorProps {
-  onImagesGenerated?: (images: BarcodeImageResult[]) => void;
+export interface BatchActions {
+  downloadAsZip: () => Promise<void>;
+  exportAsPDF: () => Promise<void>;
+  isDisabled: boolean;
+  isGenerating: boolean;
 }
 
-export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
+interface BatchGeneratorProps {
+  onImagesGenerated?: (images: BarcodeImageResult[]) => void;
+  onActionsReady?: (actions: BatchActions) => void;
+}
+
+export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGeneratorProps) {
   const [format, setFormat] = useState<BarcodeFormat>('CODE39');
   const [values, setValues] = useState('');
   const [count, setCount] = useState(10);
@@ -191,6 +199,11 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
 
   const isDisabled = isGenerating || !values.trim();
 
+  // Expose action functions to parent
+  useEffect(() => {
+    onActionsReady?.({ downloadAsZip, exportAsPDF, isDisabled, isGenerating });
+  }, [isDisabled, isGenerating, values, format, scale]);
+
   return (
     <div className="space-y-6">
       {/* Format Selection */}
@@ -300,17 +313,6 @@ export function BatchGenerator({ onImagesGenerated }: BatchGeneratorProps) {
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="grid gap-2">
-        <Button onClick={downloadAsZip} variant="outline" className="w-full gap-2" disabled={isDisabled}>
-          <FileArchive className="h-4 w-4" />
-          Download as ZIP
-        </Button>
-        <Button onClick={exportAsPDF} variant="outline" className="w-full gap-2" disabled={isDisabled}>
-          <FileText className="h-4 w-4" />
-          Download as PDF
-        </Button>
-      </div>
     </div>
   );
 }
