@@ -541,12 +541,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 opacity-20 grid-pattern pointer-events-none" />
         
-        {/* Scanner effect overlay */}
-        {isValid && !renderError && config.text.trim() && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="scanner-line absolute left-0 right-0 h-1 rounded-full" />
-          </div>
-        )}
 
         {!config.text.trim() ? (
           <div className="text-center text-muted-foreground relative z-10">

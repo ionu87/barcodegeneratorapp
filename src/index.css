@@ -119,18 +119,6 @@
 }
 
 @layer components {
-  .scanner-line {
-    animation: scan 2.5s ease-in-out infinite;
-    background: linear-gradient(90deg, transparent, hsl(var(--scanner-glow)), transparent);
-  }
-
-  @keyframes scan {
-    0%, 100% { transform: translateY(-100%); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(100%); opacity: 0; }
-  }
-
   .grid-pattern {
     background-image: none;
     background-size: 24px 24px;
