@@ -55,10 +55,6 @@ export function BatchPreview({ images, onPrint, onDownloadZip, onExportPDF, isGe
 
       {/* Preview Area */}
       <div className="flex-1 elevated-stage rounded-2xl border border-border/30 min-h-[350px] relative overflow-hidden">
-        {/* Ambient glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-        </div>
         <div className="absolute inset-0 opacity-20 grid-pattern pointer-events-none" />
 
         {images.length === 0 ? (

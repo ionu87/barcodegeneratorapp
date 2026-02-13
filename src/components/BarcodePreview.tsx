@@ -533,11 +533,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
 
       {/* Elevated Stage */}
       <div className="flex-1 flex items-center justify-center elevated-stage rounded-2xl border border-border/30 p-8 min-h-[350px] relative overflow-hidden">
-        {/* Ambient glow background */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-        </div>
-        
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 opacity-20 grid-pattern pointer-events-none" />
         
