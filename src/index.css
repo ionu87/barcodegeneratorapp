@@ -51,30 +51,30 @@
     --card-foreground: 240 10% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 4%;
-    --primary: 0 100% 40%;
+    --primary: 0 99% 36%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
-    --accent: 0 100% 40%;
+    --accent: 0 99% 36%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 99% 36%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 0 100% 40%;
+    --ring: 0 99% 36%;
     --radius: 0.75rem;
 
     --barcode-bg: 0 0% 100%;
     --barcode-lines: 240 10% 4%;
-    --scanner-glow: 0 100% 50%;
+    --scanner-glow: 0 99% 36%;
     --grid-color: 240 5% 94%;
     --terminal-bg: 240 10% 4%;
-    --terminal-text: 0 100% 50%;
+    --terminal-text: 0 99% 36%;
     --glass-bg: 0 0% 100% / 0.7;
-    --glow-primary: 0 100% 40%;
-    --neon-green: 0 100% 50%;
+    --glow-primary: 0 99% 36%;
+    --neon-green: 0 99% 36%;
   }
 
   .dark {
@@ -84,28 +84,28 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 100% 50%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 0 99% 36%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 70%;
-    --accent: 0 100% 50%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 0 72% 55%;
+    --accent: 0 99% 36%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 99% 36%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 25%;
     --input: 0 0% 15%;
-    --ring: 0 100% 50%;
+    --ring: 0 99% 36%;
     --barcode-bg: 0 0% 100%;
     --barcode-lines: 0 0% 0%;
-    --scanner-glow: 0 100% 50%;
+    --scanner-glow: 0 99% 36%;
     --grid-color: 0 0% 15%;
     --terminal-bg: 0 0% 5%;
-    --terminal-text: 0 100% 50%;
+    --terminal-text: 0 99% 36%;
     --glass-bg: 0 0% 8%;
-    --glow-primary: 0 100% 50%;
-    --neon-green: 0 100% 50%;
+    --glow-primary: 0 99% 36%;
+    --neon-green: 0 99% 36%;
   }
 }
 
@@ -122,7 +122,6 @@
   .scanner-line {
     animation: scan 2.5s ease-in-out infinite;
     background: linear-gradient(90deg, transparent, hsl(var(--scanner-glow)), transparent);
-    box-shadow: 0 0 30px hsl(var(--scanner-glow)), 0 0 60px hsl(var(--scanner-glow) / 0.4);
   }
 
   @keyframes scan {
@@ -147,29 +146,20 @@
   }
 
   .glow-border {
-    box-shadow: 
-      0 0 0 1px hsl(var(--primary) / 0.2),
-      0 0 30px hsl(var(--primary) / 0.15),
-      0 20px 40px -20px hsl(var(--primary) / 0.2);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.2);
   }
 
   .neon-glow {
-    box-shadow: 
-      0 0 20px hsl(var(--neon-green) / 0.4),
-      0 0 40px hsl(var(--neon-green) / 0.2),
-      0 0 60px hsl(var(--neon-green) / 0.1);
+    box-shadow: none;
   }
 
   .neon-glow-intense {
-    box-shadow: 
-      0 0 10px hsl(var(--neon-green)),
-      0 0 30px hsl(var(--neon-green) / 0.6),
-      0 0 60px hsl(var(--neon-green) / 0.4),
-      0 0 100px hsl(var(--neon-green) / 0.2);
+    box-shadow: none;
   }
 
   .neon-text {
-    text-shadow: 0 0 10px hsl(var(--neon-green) / 0.8), 0 0 20px hsl(var(--neon-green) / 0.4);
+    text-shadow: none;
   }
 
   .elevated-stage {
@@ -178,24 +168,21 @@
       hsl(var(--card)) 0%,
       hsl(var(--card) / 0.95) 100%
     );
-    box-shadow: 
-      0 25px 50px -12px hsl(var(--neon-green) / 0.15),
-      0 0 80px hsl(var(--neon-green) / 0.1),
+    box-shadow:
+      0 25px 50px -12px hsl(0 0% 0% / 0.1),
       inset 0 1px 0 hsl(0 0% 100% / 0.1);
   }
 
   .barcode-platform {
     background: hsl(var(--barcode-bg));
-    box-shadow: 
+    box-shadow:
       0 0 0 1px hsl(var(--neon-green) / 0.2),
-      0 0 40px hsl(var(--neon-green) / 0.3),
-      0 0 80px hsl(var(--neon-green) / 0.15),
       0 25px 50px -12px hsl(0 0% 0% / 0.25);
   }
 
   .terminal-text {
     color: hsl(var(--terminal-text));
-    text-shadow: 0 0 20px hsl(var(--terminal-text) / 0.6);
+    text-shadow: none;
   }
 
   .gradient-text {
@@ -206,24 +193,18 @@
   }
 
   .glow-input:focus {
-    box-shadow: 
-      0 0 0 2px hsl(var(--neon-green) / 0.3),
-      0 0 20px hsl(var(--neon-green) / 0.2),
-      0 0 40px hsl(var(--neon-green) / 0.1);
+    box-shadow:
+      0 0 0 2px hsl(var(--neon-green) / 0.3);
     border-color: hsl(var(--neon-green));
   }
 
   .download-btn {
     background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--neon-green)));
-    box-shadow: 
-      0 0 20px hsl(var(--neon-green) / 0.4),
-      0 4px 15px hsl(var(--neon-green) / 0.3);
+    box-shadow: 0 4px 15px hsl(0 0% 0% / 0.15);
   }
 
   .download-btn:hover {
-    box-shadow: 
-      0 0 30px hsl(var(--neon-green) / 0.5),
-      0 6px 20px hsl(var(--neon-green) / 0.4);
+    box-shadow: 0 6px 20px hsl(0 0% 0% / 0.2);
   }
 
   .segmented-control {
@@ -238,15 +219,13 @@
   .segmented-option[data-active="true"] {
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    box-shadow: 0 0 15px hsl(var(--neon-green) / 0.5);
+    box-shadow: none;
   }
 
   .info-tooltip {
     background: hsl(var(--popover));
     border: 1px solid hsl(var(--border));
-    box-shadow: 
-      0 0 20px hsl(var(--neon-green) / 0.15),
-      0 10px 30px hsl(0 0% 0% / 0.2);
+    box-shadow: 0 10px 30px hsl(0 0% 0% / 0.2);
   }
 
   .feature-card {
@@ -268,11 +247,11 @@
   }
 
   .modern-input:focus {
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 0 20px hsl(var(--primary) / 0.1);
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
   }
 
   .tab-glow[data-state="active"] {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    box-shadow: none;
   }
 
   .theme-toggle {
@@ -280,6 +259,6 @@
   }
 
   .theme-toggle:hover {
-    box-shadow: 0 0 15px hsl(var(--neon-green) / 0.3);
+    box-shadow: none;
   }
 }
