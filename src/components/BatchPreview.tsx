@@ -24,20 +24,18 @@ export function BatchPreview({ images, onPrint, onDownloadZip, onExportPDF, isGe
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant="outline"
               onClick={onDownloadZip}
               disabled={btnDisabled}
-              className="gap-2 rounded-xl h-10 px-4 font-medium"
+              className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
             >
               <FileArchive className="h-4 w-4" />
               ZIP
             </Button>
             <Button
               size="sm"
-              variant="outline"
               onClick={onExportPDF}
               disabled={btnDisabled}
-              className="gap-2 rounded-xl h-10 px-4 font-medium"
+              className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
             >
               <FileText className="h-4 w-4" />
               PDF

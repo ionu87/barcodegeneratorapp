@@ -510,15 +510,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy'}
           </Button>
-           <Button
-             size="sm"
-             onClick={printBarcode}
-             disabled={!isValid || !!renderError}
-             className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
-           >
-             <Printer className="h-4 w-4" />
-             Print
-           </Button>
           <Button
             size="sm"
             onClick={downloadBarcode}
@@ -527,6 +518,15 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           >
             <Download className="h-4 w-4" />
             Download PNG
+          </Button>
+          <Button
+            size="sm"
+            onClick={printBarcode}
+            disabled={!isValid || !!renderError}
+            className="gap-2 rounded-xl h-10 px-4 download-btn text-white font-medium"
+          >
+            <Printer className="h-4 w-4" />
+            Print
           </Button>
         </div>
       </div>
