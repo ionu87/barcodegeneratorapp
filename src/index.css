@@ -51,30 +51,30 @@
     --card-foreground: 240 10% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 4%;
-    --primary: 0 99% 36%;
+    --primary: 11 81% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
-    --accent: 0 99% 36%;
+    --accent: 11 81% 48%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 99% 36%;
+    --destructive: 11 81% 48%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 0 99% 36%;
+    --ring: 11 81% 48%;
     --radius: 0.75rem;
 
     --barcode-bg: 0 0% 100%;
     --barcode-lines: 240 10% 4%;
-    --scanner-glow: 0 99% 36%;
+    --scanner-glow: 11 81% 48%;
     --grid-color: 240 5% 94%;
     --terminal-bg: 240 10% 4%;
-    --terminal-text: 0 99% 36%;
+    --terminal-text: 11 81% 48%;
     --glass-bg: 0 0% 100% / 0.7;
-    --glow-primary: 0 99% 36%;
-    --neon-green: 0 99% 36%;
+    --glow-primary: 11 81% 48%;
+    --neon-green: 11 81% 48%;
   }
 
   .dark {
@@ -84,28 +84,28 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 99% 36%;
+    --primary: 11 81% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 70%;
-    --accent: 0 99% 36%;
+    --accent: 11 81% 48%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 99% 36%;
+    --destructive: 11 81% 48%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 25%;
     --input: 0 0% 15%;
-    --ring: 0 99% 36%;
+    --ring: 11 81% 48%;
     --barcode-bg: 0 0% 100%;
     --barcode-lines: 0 0% 0%;
-    --scanner-glow: 0 99% 36%;
+    --scanner-glow: 11 81% 48%;
     --grid-color: 0 0% 15%;
     --terminal-bg: 0 0% 5%;
-    --terminal-text: 0 99% 36%;
+    --terminal-text: 11 81% 48%;
     --glass-bg: 0 0% 8%;
-    --glow-primary: 0 99% 36%;
-    --neon-green: 0 99% 36%;
+    --glow-primary: 11 81% 48%;
+    --neon-green: 11 81% 48%;
   }
 }
 
