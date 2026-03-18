@@ -100,6 +100,11 @@ export function getApplicableChecksums(format: BarcodeFormat): { value: Checksum
     case 'UPCE':
     case 'CODE128':
       return []; // No checksum options — built-in
+    case 'MSI10':
+    case 'MSI11':
+    case 'MSI1010':
+    case 'MSI1110':
+      return []; // Check digit is built into the format name — no additional options
     case 'ITF':
     case 'ITF14':
       checksums.push({ value: 'mod10', label: 'Modulo 10 (auto-pads for even length)' });

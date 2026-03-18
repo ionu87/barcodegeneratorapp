@@ -56,6 +56,12 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
     [variants]
   );
 
+  const escapeForJsString = (s: string): string =>
+    s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+
+  const escapeHtml = (s: string): string =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const printChecksums = useCallback(() => {
     if (applicable.length === 0) return;
 
@@ -65,9 +71,9 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
     // Build SVG barcodes in the print window
     const cards = applicable.map(v => `
       <div class="cell">
-        <p class="label">${v.name}</p>
+        <p class="label">${escapeHtml(v.name)}</p>
         <svg id="bc-${v.name.replace(/[^a-zA-Z0-9]/g, '_')}"></svg>
-        <span class="value">${v.fullValue}</span>
+        <span class="value">${escapeHtml(v.fullValue)}</span>
       </div>
     `).join('');
 
@@ -87,7 +93,7 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
         window.addEventListener('afterprint', function() { window.close(); });
         ${applicable.map(v => {
           const id = `bc-${v.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
-          return `try { JsBarcode("#${id}", "${v.fullValue}", { format: "CODE128", width: 1.5, height: 60, displayValue: false, margin: 5 }); } catch(e) {}`;
+          return `try { JsBarcode("#${id}", "${escapeForJsString(v.fullValue)}", { format: "CODE128", width: 1.5, height: 60, displayValue: false, margin: 5 }); } catch(e) {}`;
         }).join('\n')}
         setTimeout(function() { window.print(); }, 200);
       <\/script></body></html>`);

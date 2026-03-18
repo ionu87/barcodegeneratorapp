@@ -9,7 +9,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:dev": "vite build --mode development",
-    "electron:build": "npm run build && electron-builder --publish never"
+    "electron:build": "npm run build && electron-builder --publish never",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "build": {
     "appId": "com.ionut.barcodegenerator",
@@ -22,6 +24,7 @@
     "files": [
       "dist/**/*",
       "electron/main.js",
+      "electron/preload.js",
       "package.json",
       "build/**/*"
     ],
@@ -58,6 +61,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@tanstack/react-query": "^5.0.0",
     "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.0",
     "bwip-js": "^4.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
@@ -77,6 +81,9 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/bwip-js": "^3.2.3",
     "@types/file-saver": "^2.0.7",
     "@types/jsbarcode": "^3.11.4",
@@ -87,8 +94,10 @@
     "autoprefixer": "^10.4.0",
     "electron": "^28.0.0",
     "electron-builder": "^26.7.0",
+    "jsdom": "^29.0.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^4.0.0",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^4.1.0"
   }
 }

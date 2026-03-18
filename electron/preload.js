@@ -1,11 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Add any IPC methods you need here
-  platform: process.platform,
-  
-  // Example: Save file dialog
-  // saveFile: (data) => ipcRenderer.invoke('save-file', data),
+  printBarcode: (dataUrl) => {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return;
+    ipcRenderer.send('print-barcode', dataUrl);
+  },
 });

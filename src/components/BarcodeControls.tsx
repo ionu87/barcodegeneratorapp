@@ -238,7 +238,7 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Print DPI</Label>
               <span className="font-mono text-primary font-medium">
-                → {Math.max(1, Math.round(config.widthMils * config.dpi / 1000))} px/bar
+                → {Math.max(1, Math.ceil(config.widthMils * config.dpi / 1000))} px/bar
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">

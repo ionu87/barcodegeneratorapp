@@ -13,7 +13,8 @@ Barcode Generator is a React + TypeScript desktop application packaged with Elec
 - `npm run electron:build` — Build + package as Electron app (outputs to `dist_electron/`)
 - `npm run preview` — Preview production build locally
 
-No test runner or linter is currently configured in scripts. Vitest config exists in `vite.config.ts` but no test files are present.
+- `npm test` — Run unit tests once (vitest run)
+- `npm run test:watch` — Run tests in watch mode
 
 ## Architecture
 
@@ -44,3 +45,19 @@ The `is2DBarcode()` helper in `src/lib/barcodeUtils.ts` determines which pipelin
 - **Checksum normalization:** For formats with built-in checksums (EAN13, UPC, etc.), `normalizeForRendering()` strips the check digit before passing to JsBarcode, which recalculates it
 - **Toast notifications:** Uses `sonner` library (not the shadcn toast)
 - **TypeScript config:** Lenient — `noImplicitAny: false`, `strictNullChecks: false`
+
+## Testing
+
+Unit tests are mandatory. Always write or update unit tests when implementing new features, fixing bugs, or modifying existing logic.
+
+- **Test runner:** Vitest (`npm test`)
+- **Test files:** co-located alongside source files as `*.test.ts` / `*.test.tsx`, under `src/`
+- **Setup:** `src/test/setup.ts` configures jsdom globals and `@testing-library/jest-dom` matchers
+- **Scope:** Focus tests on pure-function logic (lib files). React component tests are acceptable but must use `@testing-library/react` — avoid testing implementation details.
+- **Run before committing:** Always run `npm test` before committing changes. All tests must pass.
+
+### What to test
+- Every new exported function in `src/lib/` must have corresponding test cases
+- Bug fixes: add a regression test that reproduces the bug before fixing it
+- Checksum functions: always include at least one known-correct test vector
+- Validation functions: cover both valid and invalid inputs for each format

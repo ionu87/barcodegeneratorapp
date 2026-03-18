@@ -34,6 +34,9 @@ const Index = () => {
     const printWindow = window.open('', '', 'width=800,height=600');
     if (!printWindow) { toast.error('Pop-up blocked. Please allow pop-ups.'); return; }
 
+    const sanitizeDataUrl = (url: string) => url.startsWith('data:image/') ? url.replace(/"/g, '&quot;') : '';
+    const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Batch Barcodes</title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: monospace; padding: 15mm; }
@@ -43,7 +46,7 @@ const Index = () => {
       .cell span { margin-top: 8px; font-size: 13px; font-family: 'Courier New', monospace; color: #000; font-weight: 600; letter-spacing: 0.05em; }
       @media print { body { padding: 10mm; } .cell { break-inside: avoid; } img { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
     </style></head><body><div class="grid">${
-      batchImages.map(img => `<div class="cell"><img src="${img.dataUrl}" /><span>${img.value}</span></div>`).join('')
+      batchImages.map(img => `<div class="cell"><img src="${sanitizeDataUrl(img.dataUrl)}" /><span>${escapeHtml(img.value)}</span></div>`).join('')
     }</div><script>
       window.addEventListener('afterprint', function() { window.close(); });
       const imgs = document.querySelectorAll('img');

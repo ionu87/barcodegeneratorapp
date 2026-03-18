@@ -9,9 +9,9 @@ function createWindow() {
     height: 800,
     icon: path.join(__dirname, '../build/icon.ico'),
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 
@@ -33,6 +33,10 @@ function createWindow() {
 
 // FIXED: Handle print request with image data and print preview support
 ipcMain.on('print-barcode', (event, imageDataUrl) => {
+  if (typeof imageDataUrl !== 'string' || !imageDataUrl.startsWith('data:image/')) {
+    console.error('print-barcode: invalid data rejected');
+    return;
+  }
   // Create a visible print preview window
   const printWindow = new BrowserWindow({
     width: 800,
@@ -40,8 +44,8 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
     show: true,  // Show the window for preview
     title: 'Print Preview - Barcode',
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true
     },
     autoHideMenuBar: true,  // Hide menu bar for cleaner look
     backgroundColor: '#ffffff'

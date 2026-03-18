@@ -59,7 +59,6 @@ function getBwipFormat(format: string): string {
 export function BarcodePreview({ config, effects = defaultEffects, isValid, errorMessage }: BarcodePreviewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const noiseCanvasRef = useRef<HTMLCanvasElement>(null);
   const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
@@ -78,12 +77,14 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
   }, [config.quality]);
 
   // Compute effective bar width: convert mils → pixels using DPI, then apply line thickness.
-  // Result is rounded to the nearest whole pixel (min 1) so JsBarcode receives an integer width
-  // and all bar x-positions are integer multiples — eliminating sub-pixel drift/shadow artifacts.
+  // Math.ceil (not round) ensures that 5 mil and 7.5 mil produce distinct pixel widths at 300 DPI:
+  //   round(1.5)=2  round(2.25)=2  ← both 2px, no visible difference
+  //   ceil(1.5)=2   ceil(2.25)=3   ← 2px vs 3px, clearly different
+  // Result is always an integer ≥ 1 so JsBarcode/bwip-js never receive fractional bar widths.
   const effectiveWidth = useMemo(() => {
     const pixelWidth = config.widthMils * config.dpi / 1000;
     const raw = effects.enableEffects ? pixelWidth * effects.lineThickness : pixelWidth;
-    return Math.max(1, Math.round(raw));
+    return Math.max(1, Math.ceil(raw));
   }, [config.widthMils, config.dpi, effects.enableEffects, effects.lineThickness]);
 
   // Render 1D barcodes with JsBarcode
@@ -97,7 +98,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       const renderText = normalizeForRendering(barcodeText, config.format);
       JsBarcode(svgRef.current, renderText, {
         format: config.format,
-         width: effectiveWidth * config.scale,
+         width: Math.max(1, Math.round(effectiveWidth * config.scale)),
          height: config.height * config.scale,
         displayValue: config.displayValue,
          fontSize: config.fontSize * config.scale,
@@ -243,12 +244,9 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       img.src = sourceCanvas.toDataURL('image/png');
     } else {
       if (!svgRef.current) return;
-      
+
       const svg = svgRef.current;
       const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx) return;
 
       const img = new Image();
       const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
@@ -271,6 +269,11 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
 
         toast.success('Barcode downloaded successfully');
         URL.revokeObjectURL(url);
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        toast.error('Failed to render barcode for download');
       };
 
       img.src = url;
@@ -353,6 +356,10 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     const pixelWidth = config.widthMils * config.dpi / 1000;
 
     const openPrintWindow = (imageDataUrl: string) => {
+      if (!imageDataUrl.startsWith('data:image/')) {
+        console.error('openPrintWindow: invalid image data URL');
+        return;
+      }
       const printWindow = window.open('', '', 'width=800,height=600');
       if (!printWindow) {
         toast.error('Failed to open print window. Please check your popup blocker.');
@@ -421,14 +428,9 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     };
 
     const dispatchPrint = (dataUrl: string) => {
-      if (typeof window !== 'undefined' && window.require) {
-        try {
-          const { ipcRenderer } = window.require('electron');
-          ipcRenderer.send('print-barcode', dataUrl);
-          return;
-        } catch (error) {
-          console.error('Electron print failed, falling back to browser print:', error);
-        }
+      if (typeof window !== 'undefined' && (window as any).electronAPI) {
+        (window as any).electronAPI.printBarcode(dataUrl);
+        return;
       }
       openPrintWindow(dataUrl);
     };
@@ -624,7 +626,6 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       )}
 
       <canvas ref={canvasRef} className="hidden" />
-      <canvas ref={noiseCanvasRef} className="hidden" />
       <canvas ref={barcodeCanvasRef} className="hidden" />
     </div>
   );

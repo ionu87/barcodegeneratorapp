@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   calculateMod10, 
   calculateMod11, 
@@ -136,12 +136,11 @@ export function ChecksumCalculator({ onChecksumData }: ChecksumCalculatorProps) 
   const checksums = getChecksums();
 
   // Notify parent of input/checksum changes
-  const prevDataRef = useRef('');
-  const dataKey = input + checksums.map(c => c.fullValue).join(',');
-  if (dataKey !== prevDataRef.current) {
-    prevDataRef.current = dataKey;
+  useEffect(() => {
     onChecksumData?.(input, checksums);
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input]);
+
   const copyValue = (value: string, index: number) => {
     navigator.clipboard.writeText(value);
     setCopiedIndex(index);

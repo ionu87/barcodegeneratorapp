@@ -90,11 +90,17 @@ function evaluateChecksum(input: string, format: BarcodeFormat): ChecksumEval {
 
     case 'ITF14': {
       if (input.length === 14) {
-        const expected = calculateMod10(input.slice(0, 13));
+        // ITF-14 uses GS1 alternating weights 3,1 from left (same as EAN/UPC), not Luhn
+        const digits = input.slice(0, 13).split('').map(Number);
+        let sum = 0;
+        for (let i = 0; i < 13; i++) {
+          sum += digits[i] * (i % 2 === 0 ? 3 : 1);
+        }
+        const expected = (10 - (sum % 10)) % 10;
         const actual = parseInt(input[13], 10);
         return expected === actual
-          ? { status: 'valid', label: 'Mod 10', note: `Check digit ${actual} is correct` }
-          : { status: 'invalid', label: 'Mod 10', note: `Check digit should be ${expected}, got ${actual}` };
+          ? { status: 'valid', label: 'GS1 Mod 10', note: `Check digit ${actual} is correct` }
+          : { status: 'invalid', label: 'GS1 Mod 10', note: `Check digit should be ${expected}, got ${actual}` };
       }
       return { status: 'not_applicable', label: '—', note: '13-digit input has no check digit to validate' };
     }

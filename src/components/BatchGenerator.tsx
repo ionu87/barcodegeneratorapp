@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { BarcodeFormat, BARCODE_FORMATS, validateInput } from '@/lib/barcodeUtils';
 import { generateBarcodeImage, generateBarcodeBlob, BarcodeImageResult } from '@/lib/barcodeImageGenerator';
 import { Button } from '@/components/ui/button';
@@ -86,6 +86,16 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
     if (format === 'ITF14') length = 13;
     if (format === 'ITF' && length % 2 !== 0) length = Math.max(2, length - 1);
 
+    if (format === 'pharmacode') {
+      const pharmacodeValues: string[] = [];
+      for (let i = 0; i < count; i++) {
+        pharmacodeValues.push(String(Math.floor(Math.random() * 131068) + 3));
+      }
+      setValues(pharmacodeValues.join('\n'));
+      toast.success(`Generated ${count} random values`);
+      return;
+    }
+
     const randomValues: string[] = [];
     for (let i = 0; i < count; i++) {
       randomValues.push(generateRandomString(length, isNumericOnly));
@@ -96,8 +106,8 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
 
   const getValueList = () => values.split('\n').map(v => v.trim()).filter(v => v);
 
-  const downloadAsZip = async () => {
-    const valueList = getValueList();
+  const downloadAsZip = useCallback(async () => {
+    const valueList = values.split('\n').map(v => v.trim()).filter(v => v);
     if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
 
     setIsGenerating(true);
@@ -117,10 +127,12 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       }
 
       const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(content);
+      link.href = url;
       link.download = `barcodes-${format}-${Date.now()}.zip`;
       link.click();
+      URL.revokeObjectURL(url);
       toast.success(`Downloaded ${valueList.length} barcodes`);
     } catch (error) {
       console.error('Batch generation error:', error);
@@ -129,10 +141,10 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       setIsGenerating(false);
       setProgress(0);
     }
-  };
+  }, [values, format, scale]);
 
-  const exportAsPDF = async () => {
-    const valueList = getValueList();
+  const exportAsPDF = useCallback(async () => {
+    const valueList = values.split('\n').map(v => v.trim()).filter(v => v);
     if (valueList.length === 0) { toast.error('Please enter at least one value'); return; }
 
     setIsGenerating(true);
@@ -195,7 +207,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       setIsGenerating(false);
       setProgress(0);
     }
-  };
+  }, [values, format, scale]);
 
   const isDisabled = isGenerating || !values.trim();
 
