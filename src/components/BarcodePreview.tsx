@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import JsBarcode from 'jsbarcode';
 import bwipjs from 'bwip-js';
 import { BarcodeConfig, applyChecksum, is2DBarcode, QUALITY_LEVELS, normalizeForRendering } from '@/lib/barcodeUtils';
+import { injectPngDpi } from '@/lib/barcodeImageGenerator';
 import { ValidationService, ValidationCertificate } from '@/lib/validationService';
 import { ImageEffectsConfig, getDefaultEffectsConfig } from '@/components/ImageEffects';
  import { Download, Copy, Check, AlertCircle, Printer, ShieldCheck, FileJson, Loader2 } from 'lucide-react';
@@ -85,14 +86,14 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
   }, [config.quality]);
 
   // Compute effective bar width: convert mils → pixels using DPI, then apply line thickness.
-  // Math.ceil (not round) ensures that 5 mil and 7.5 mil produce distinct pixel widths at 300 DPI:
-  //   round(1.5)=2  round(2.25)=2  ← both 2px, no visible difference
-  //   ceil(1.5)=2   ceil(2.25)=3   ← 2px vs 3px, clearly different
+  // Math.round gives the nearest achievable whole-pixel width — this matches physical reality:
+  //   7.5 mil @ 300 DPI → 2.25 px → round → 2 px (actual 6.67 mil)
+  //   10 mil  @ 300 DPI → 3.0 px  → round → 3 px (exact)
   // Result is always an integer ≥ 1 so JsBarcode/bwip-js never receive fractional bar widths.
   const effectiveWidth = useMemo(() => {
     const pixelWidth = config.widthMils * config.dpi / 1000;
     const raw = effects.enableEffects ? pixelWidth * effects.lineThickness : pixelWidth;
-    return Math.max(1, Math.ceil(raw));
+    return Math.max(1, Math.round(raw));
   }, [config.widthMils, config.dpi, effects.enableEffects, effects.lineThickness]);
 
   // Render 1D barcodes with JsBarcode
@@ -253,9 +254,27 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
+    // DPI for the exported image — the image is rendered at dpi × scale resolution,
+    // so effectiveDpi keeps the physical X-dimension correct in viewers that read pHYs.
+    const effectiveDpi = config.dpi * config.scale;
+
+    const finishDownload = () => {
+      const rawUrl = canvas.toDataURL('image/png');
+      const dpiUrl = injectPngDpi(rawUrl, effectiveDpi);
+      const wMm = (canvas.width * 25.4 / effectiveDpi).toFixed(1);
+      const hMm = (canvas.height * 25.4 / effectiveDpi).toFixed(1);
+
+      const link = document.createElement('a');
+      link.download = `barcode-${config.format}-${barcodeText}.png`;
+      link.href = dpiUrl;
+      link.click();
+
+      toast.success(`Downloaded: ${wMm} × ${hMm} mm @ ${config.dpi} DPI`);
+    };
+
     if (is2D) {
       if (!barcodeCanvasRef.current) return;
-      
+
       const sourceCanvas = barcodeCanvasRef.current;
       const img = new Image();
       img.onload = () => {
@@ -266,13 +285,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           canvas.height = img.height;
           ctx.drawImage(img, 0, 0);
         }
-
-        const link = document.createElement('a');
-        link.download = `barcode-${config.format}-${barcodeText}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        toast.success('Barcode downloaded successfully');
+        finishDownload();
       };
       img.src = sourceCanvas.toDataURL('image/png');
     } else {
@@ -294,13 +307,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(img, 0, 0);
         }
-
-        const link = document.createElement('a');
-        link.download = `barcode-${config.format}-${barcodeText}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-
-        toast.success('Barcode downloaded successfully');
+        finishDownload();
         URL.revokeObjectURL(url);
       };
 
@@ -331,13 +338,15 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
+    const effectiveDpi = config.dpi * config.scale;
+
     try {
       if (is2D) {
         if (!barcodeCanvasRef.current) return;
-        
+
         const sourceCanvas = barcodeCanvasRef.current;
         const img = new Image();
-        
+
         await new Promise<void>((resolve) => {
           img.onload = () => {
             if (effects.enableEffects) {
@@ -353,7 +362,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         });
       } else {
         if (!svgRef.current) return;
-        
+
         const svg = svgRef.current;
         const svgData = new XMLSerializer().serializeToString(svg);
         const img = new Image();
@@ -377,31 +386,39 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         });
       }
 
-      canvas.toBlob(async (blob) => {
-        if (blob) {
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-          setCopied(true);
-          toast.success('Barcode copied to clipboard');
-          setTimeout(() => setCopied(false), 2000);
-        }
-      });
+      // Inject DPI metadata before copying to clipboard
+      const dpiUrl = injectPngDpi(canvas.toDataURL('image/png'), effectiveDpi);
+      const base64 = dpiUrl.substring(dpiUrl.indexOf(',') + 1);
+      const raw = atob(base64);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      const dpiBlob = new Blob([bytes], { type: 'image/png' });
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': dpiBlob })
+      ]);
+      setCopied(true);
+      toast.success('Barcode copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Copy failed:', error);
       toast.error('Failed to copy to clipboard');
     }
   };
 
-  // Print barcode — always renders clean (no effects, no quiet zone/margin)
+  // Print barcode — always renders clean (no effects, no quiet zone/margin).
+  // Uses explicit physical mm dimensions so the print output matches intended size.
   const printBarcode = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
+    // Snap module width to whole pixels — same formula as effectiveWidth (without effects)
     const pixelWidth = config.widthMils * config.dpi / 1000;
+    const modulePixels = Math.max(1, Math.round(pixelWidth));
+    const scaledModule = Math.max(1, Math.round(modulePixels * config.scale));
 
-    const openPrintWindow = (imageDataUrl: string) => {
+    const openPrintWindow = (imageDataUrl: string, imgWidthPx: number, imgHeightPx: number) => {
       if (!imageDataUrl.startsWith('data:image/')) {
         console.error('openPrintWindow: invalid image data URL');
         return;
@@ -412,12 +429,25 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         return;
       }
 
+      // The image is rendered at scale× resolution for print quality, so the
+      // effective DPI is config.dpi × config.scale.  Dividing by effectiveDpi
+      // cancels the scale factor and keeps the physical X-dimension correct:
+      //   scaledModule px ÷ (dpi × scale) ≈ modulePixels px ÷ dpi
+      const effectiveDpi = config.dpi * config.scale;
+      const imgWidthMm = (imgWidthPx * 25.4 / effectiveDpi).toFixed(2);
+      const imgHeightMm = (imgHeightPx * 25.4 / effectiveDpi).toFixed(2);
+      const actualMils = ((modulePixels * 1000) / config.dpi).toFixed(1);
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
             <title>Print Barcode</title>
             <style>
+              @page {
+                size: auto;
+                margin: 10mm;
+              }
               * {
                 margin: 0;
                 padding: 0;
@@ -425,40 +455,50 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
               }
               body {
                 display: flex;
-                justify-content: center;
+                flex-direction: column;
                 align-items: center;
+                justify-content: center;
                 min-height: 100vh;
                 background: white;
               }
               img {
-                max-width: 90%;
-                height: auto;
+                width: ${imgWidthMm}mm;
+                height: ${imgHeightMm}mm;
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: crisp-edges;
                 image-rendering: pixelated;
                 -ms-interpolation-mode: nearest-neighbor;
               }
+              .print-info {
+                margin-top: 8mm;
+                font-family: monospace;
+                font-size: 9pt;
+                color: #666;
+                text-align: center;
+                line-height: 1.6;
+              }
               @media print {
                 body {
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                 -webkit-print-color-adjust: exact;
-                 print-color-adjust: exact;
+                  min-height: auto;
                 }
                 img {
-                  max-width: 90%;
-                  height: auto;
-                 image-rendering: -webkit-optimize-contrast;
-                 image-rendering: crisp-edges;
-                 image-rendering: pixelated;
-                 -ms-interpolation-mode: nearest-neighbor;
+                  width: ${imgWidthMm}mm;
+                  height: ${imgHeightMm}mm;
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
+                .print-info {
+                  display: none;
                 }
               }
             </style>
           </head>
           <body>
             <img src="${imageDataUrl}" alt="Barcode" />
+            <div class="print-info">
+              ${imgWidthMm} &times; ${imgHeightMm} mm &middot; ${imgWidthPx} &times; ${imgHeightPx} px &middot; ${config.dpi} DPI &middot; ${actualMils} mil module<br/>
+              Print at 100% scale (no fit-to-page) for accurate physical dimensions
+            </div>
           </body>
         </html>
       `);
@@ -473,12 +513,22 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       };
     };
 
-    const dispatchPrint = (dataUrl: string) => {
+    const dispatchPrint = (rawDataUrl: string, widthPx: number, heightPx: number) => {
+      // Inject DPI so the PNG itself carries physical resolution metadata
+      const dataUrl = injectPngDpi(rawDataUrl, config.dpi * config.scale);
       if (typeof window !== 'undefined' && (window as any).electronAPI) {
-        (window as any).electronAPI.printBarcode(dataUrl);
+        const effectiveDpi = config.dpi * config.scale;
+        (window as any).electronAPI.printBarcode(dataUrl, {
+          widthMm: +(widthPx * 25.4 / effectiveDpi).toFixed(2),
+          heightMm: +(heightPx * 25.4 / effectiveDpi).toFixed(2),
+          widthPx,
+          heightPx,
+          dpi: config.dpi,
+          actualMils: +((modulePixels * 1000) / config.dpi).toFixed(1),
+        });
         return;
       }
-      openPrintWindow(dataUrl);
+      openPrintWindow(dataUrl, widthPx, heightPx);
     };
 
     if (is2D) {
@@ -488,7 +538,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         const bwipOptions: Record<string, unknown> = {
           bcid: getBwipFormat(config.format),
           text: barcodeText,
-          scale: Math.max(1, Math.round(pixelWidth * config.scale)),
+          scale: scaledModule,
           includetext: config.displayValue,
           textsize: Math.round(config.fontSize * config.scale),
           textxalign: 'center',
@@ -501,7 +551,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           bwipOptions.width = Math.floor((config.height * config.scale) / 3);
         }
         bwipjs.toCanvas(tempCanvas, bwipOptions as unknown as Parameters<typeof bwipjs.toCanvas>[1]);
-        dispatchPrint(tempCanvas.toDataURL('image/png'));
+        dispatchPrint(tempCanvas.toDataURL('image/png'), tempCanvas.width, tempCanvas.height);
       } catch (error) {
         console.error('Print 2D barcode error:', error);
       }
@@ -512,7 +562,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       try {
         JsBarcode(tempSvg, renderText, {
           format: config.format,
-          width: Math.round(pixelWidth * config.scale),
+          width: scaledModule,
           height: config.height * config.scale,
           displayValue: config.displayValue,
           fontSize: config.fontSize * config.scale,
@@ -532,7 +582,7 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           ctx.imageSmoothingEnabled = false;
           ctx.drawImage(img, 0, 0);
           URL.revokeObjectURL(url);
-          dispatchPrint(canvas.toDataURL('image/png'));
+          dispatchPrint(canvas.toDataURL('image/png'), canvas.width, canvas.height);
         };
         img.src = url;
       } catch (error) {

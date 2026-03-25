@@ -15,7 +15,7 @@
 
 import { BrowserMultiFormatReader, BarcodeFormat as ZXingFormat } from '@zxing/browser';
 import { DecodeHintType, NotFoundException, FormatException, ChecksumException } from '@zxing/library';
-import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, applyChecksum, normalizeForRendering, getDefaultConfig } from './barcodeUtils';
+import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, applyChecksum, normalizeForRendering, getDefaultConfig, snapToPixelGrid } from './barcodeUtils';
 import { generateBarcodeImage } from './barcodeImageGenerator';
 import { BarcodeValidator, ValidationException, ChecksumValidationResult } from './validationEngine';
 
@@ -375,7 +375,10 @@ export class ValidationService {
     testLabel: string | null;
   }): ValidationCertificate {
     const { timestamp, config, checksumValidation, roundTripResult, errors, testLabel } = args;
-    const xDimensionMils = config.widthMils;
+    // Use the actual achievable X-dimension after pixel-grid snapping, not the
+    // requested value.  E.g. 7.5 mil @ 300 DPI → 2 px → 6.67 mil actual.
+    const snap = snapToPixelGrid(config.widthMils, config.dpi);
+    const xDimensionMils = snap.actualMils;
     const xDimensionCompliant = xDimensionMils >= HEALTHCARE_X_DIM_MILS;
     const isoGrade = computeISOGrade(
       roundTripResult.success,

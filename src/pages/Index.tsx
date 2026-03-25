@@ -37,14 +37,31 @@ const Index = () => {
     const sanitizeDataUrl = (url: string) => url.startsWith('data:image/') ? url.replace(/"/g, '&quot;') : '';
     const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+    // Use physical mm dimensions from image results for accurate print sizing
+    const hasPhysicalDims = batchImages[0]?.widthMm > 0;
+    const imgWidthMm = hasPhysicalDims ? batchImages[0].widthMm : 0;
+    const imgHeightMm = hasPhysicalDims ? batchImages[0].heightMm : 0;
+
+    // CSS sizing: explicit mm when available, else fallback to max-width
+    const imgStyle = hasPhysicalDims
+      ? `width: ${imgWidthMm}mm; height: ${imgHeightMm}mm;`
+      : 'max-width: 100%; height: auto;';
+    const imgStylePrint = hasPhysicalDims
+      ? `width: ${imgWidthMm}mm !important; height: ${imgHeightMm}mm !important;`
+      : 'max-width: 100%; height: auto;';
+
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Batch Barcodes</title><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { font-family: monospace; padding: 15mm; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+      .grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
       .cell { display: flex; flex-direction: column; align-items: center; break-inside: avoid; padding: 10px; }
-      .cell img { max-width: 100%; height: auto; image-rendering: crisp-edges; image-rendering: pixelated; }
+      .cell img { ${imgStyle} image-rendering: crisp-edges; image-rendering: pixelated; }
       .cell span { margin-top: 8px; font-size: 13px; font-family: 'Courier New', monospace; color: #000; font-weight: 600; letter-spacing: 0.05em; }
-      @media print { body { padding: 10mm; } .cell { break-inside: avoid; } img { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+      @media print {
+        body { padding: 10mm; }
+        .cell { break-inside: avoid; }
+        .cell img { ${imgStylePrint} print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      }
     </style></head><body><div class="grid">${
       batchImages.map(img => `<div class="cell"><img src="${sanitizeDataUrl(img.dataUrl)}" /><span>${escapeHtml(img.value)}</span></div>`).join('')
     }</div><script>
@@ -118,6 +135,8 @@ const Index = () => {
                   <BatchGenerator
                     onImagesGenerated={setBatchImages}
                     onActionsReady={(actions) => { batchActionsRef.current = actions; }}
+                    widthMils={config.widthMils}
+                    dpi={config.dpi}
                   />
                 </TabsContent>
                 
@@ -143,6 +162,8 @@ const Index = () => {
               <ChecksumPreview
                 variants={checksumVariants}
                 inputValue={checksumInput}
+                widthMils={config.widthMils}
+                dpi={config.dpi}
               />
             ) : (
               <BarcodePreview

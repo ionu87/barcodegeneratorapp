@@ -31,38 +31,56 @@ function createWindow() {
   });
 }
 
-// FIXED: Handle print request with image data and print preview support
-ipcMain.on('print-barcode', (event, imageDataUrl) => {
+// Handle print request with image data, physical dimensions, and print preview.
+ipcMain.on('print-barcode', (event, imageDataUrl, dims) => {
   if (typeof imageDataUrl !== 'string' || !imageDataUrl.startsWith('data:image/')) {
     console.error('print-barcode: invalid data rejected');
     return;
   }
-  // Create a visible print preview window
+
+  // Physical dimensions from the renderer (mm).  When present the print
+  // output will match the configured X-dimension exactly.
+  const hasDims = dims && typeof dims.widthMm === 'number' && typeof dims.heightMm === 'number';
+  const widthMm  = hasDims ? dims.widthMm  : 0;
+  const heightMm = hasDims ? dims.heightMm : 0;
+  const widthPx  = hasDims ? dims.widthPx  : 0;
+  const heightPx = hasDims ? dims.heightPx : 0;
+  const dpi       = hasDims ? dims.dpi      : 0;
+  const actualMils = hasDims ? dims.actualMils : 0;
+
+  // CSS sizing: use exact mm dimensions when available, else fall back to
+  // max-width so the image at least doesn't overflow the page.
+  const imgCss = hasDims
+    ? `width: ${widthMm}mm; height: ${heightMm}mm;`
+    : 'max-width: 90%; height: auto;';
+  const imgCssPrint = hasDims
+    ? `width: ${widthMm}mm !important; height: ${heightMm}mm !important;`
+    : 'max-width: 90%; height: auto;';
+
+  const infoLine = hasDims
+    ? `${widthMm} &times; ${heightMm} mm &middot; ${widthPx} &times; ${heightPx} px &middot; ${dpi} DPI &middot; ${actualMils} mil module`
+    : '';
+
   const printWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    show: true,  // Show the window for preview
+    show: true,
     title: 'Print Preview - Barcode',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     },
-    autoHideMenuBar: true,  // Hide menu bar for cleaner look
+    autoHideMenuBar: true,
     backgroundColor: '#ffffff'
   });
 
-  // Create HTML with the barcode image and print button
   const printHTML = `
     <!DOCTYPE html>
     <html>
     <head>
       <title>Print Preview - Barcode</title>
       <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           background: #f5f5f5;
@@ -87,46 +105,39 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
           cursor: pointer;
           transition: all 0.2s;
         }
-        .print-btn {
-          background: #6366f1;
-          color: white;
-        }
-        .print-btn:hover {
-          background: #5558e3;
-        }
-        .cancel-btn {
-          background: #e5e7eb;
-          color: #374151;
-        }
-        .cancel-btn:hover {
-          background: #d1d5db;
-        }
+        .print-btn { background: #6366f1; color: white; }
+        .print-btn:hover { background: #5558e3; }
+        .cancel-btn { background: #e5e7eb; color: #374151; }
+        .cancel-btn:hover { background: #d1d5db; }
         .preview-container {
           background: white;
           padding: 40px;
           border-radius: 8px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           min-height: 500px;
         }
         img {
-          max-width: 90%;
-          height: auto;
+          ${imgCss}
           image-rendering: -webkit-optimize-contrast;
           image-rendering: crisp-edges;
           image-rendering: pixelated;
           -ms-interpolation-mode: nearest-neighbor;
         }
+        .print-info {
+          margin-top: 12px;
+          font-family: monospace;
+          font-size: 11px;
+          color: #666;
+          text-align: center;
+          line-height: 1.6;
+        }
         @media print {
-          body {
-            background: white;
-            padding: 0;
-          }
-          .toolbar {
-            display: none;
-          }
+          body { background: white; padding: 0; }
+          .toolbar { display: none; }
           .preview-container {
             box-shadow: none;
             padding: 0;
@@ -135,12 +146,9 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
             align-items: center;
             min-height: 100vh;
           }
-          @page {
-            margin: 0;
-          }
+          @page { size: auto; margin: 10mm; }
           img {
-            max-width: 90%;
-            height: auto;
+            ${imgCssPrint}
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             image-rendering: pixelated;
@@ -148,44 +156,32 @@ ipcMain.on('print-barcode', (event, imageDataUrl) => {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
+          .print-info { display: none; }
         }
       </style>
     </head>
     <body>
       <div class="toolbar">
-        <button class="print-btn" onclick="window.print()">
-          🖨️ Print
-        </button>
-        <button class="cancel-btn" onclick="window.close()">
-          ✕ Cancel
-        </button>
+        <button class="print-btn" onclick="window.print()">Print</button>
+        <button class="cancel-btn" onclick="window.close()">Cancel</button>
         <span style="margin-left: auto; color: #6b7280; font-size: 13px;">
-          Click Print to open print dialog, or press Ctrl+P
+          Print at 100% scale (no fit-to-page) for accurate dimensions
         </span>
       </div>
       <div class="preview-container">
         <img id="barcode-img" alt="Barcode" />
+        ${infoLine ? '<div class="print-info">' + infoLine + '</div>' : ''}
       </div>
       <script>
-        // Set image src via DOM API to prevent template-injection / XSS.
-        // The data URL is passed as a JSON-encoded string so special chars
-        // (quotes, angle brackets) cannot break out of the script context.
         document.getElementById('barcode-img').src = ${JSON.stringify(imageDataUrl)};
       </script>
     </body>
     </html>
   `;
 
-  // Load the HTML into the print window
   printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(printHTML));
-
-  // Remove the menu bar
   printWindow.setMenuBarVisibility(false);
-
-  // Handle window close
-  printWindow.on('closed', () => {
-    // Clean up
-  });
+  printWindow.on('closed', () => {});
 });
 
 app.whenReady().then(createWindow);

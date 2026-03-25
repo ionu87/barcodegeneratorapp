@@ -27,9 +27,13 @@ export interface BatchActions {
 interface BatchGeneratorProps {
   onImagesGenerated?: (images: BarcodeImageResult[]) => void;
   onActionsReady?: (actions: BatchActions) => void;
+  /** X-dimension in mils from the main Generate config (default 7.5). */
+  widthMils?: number;
+  /** Target print DPI from the main Generate config (default 300). */
+  dpi?: number;
 }
 
-export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGeneratorProps) {
+export function BatchGenerator({ onImagesGenerated, onActionsReady, widthMils = 7.5, dpi = 300 }: BatchGeneratorProps) {
   const [format, setFormat] = useState<BarcodeFormat>('CODE39');
   const [values, setValues] = useState('');
   const [count, setCount] = useState(10);
@@ -53,7 +57,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       try {
         const images: BarcodeImageResult[] = [];
         for (const val of valueList) {
-          const result = await generateBarcodeImage(val, format, scale);
+          const result = await generateBarcodeImage(val, format, scale, 10, widthMils, dpi);
           if (result) images.push(result);
         }
         onImagesGenerated?.(images);
@@ -63,7 +67,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
     }, 300);
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [values, format, scale, onImagesGenerated]);
+  }, [values, format, scale, widthMils, dpi, onImagesGenerated]);
 
   const generateRandomString = (length: number, numeric: boolean = false): string => {
     const chars = numeric
@@ -119,7 +123,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       const folder = zip.folder('barcodes');
 
       for (let i = 0; i < valueList.length; i++) {
-        const blob = await generateBarcodeBlob(valueList[i], format, scale, 0);
+        const blob = await generateBarcodeBlob(valueList[i], format, scale, 0, widthMils, dpi);
         if (blob && folder) {
           folder.file(`${valueList[i]}.png`, blob);
         }
@@ -141,7 +145,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       setIsGenerating(false);
       setProgress(0);
     }
-  }, [values, format, scale]);
+  }, [values, format, scale, widthMils, dpi]);
 
   const exportAsPDF = useCallback(async () => {
     const valueList = values.split('\n').map(v => v.trim()).filter(v => v);
@@ -155,7 +159,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       const images: { dataUrl: string; width: number; height: number; value: string }[] = [];
 
       for (let i = 0; i < valueList.length; i++) {
-        const result = await generateBarcodeImage(valueList[i], format, scale, 0);
+        const result = await generateBarcodeImage(valueList[i], format, scale, 0, widthMils, dpi);
         if (result) images.push(result);
         setProgress(((i + 1) / valueList.length) * 100);
       }
@@ -163,12 +167,12 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       if (images.length === 0) { toast.error('No valid barcodes generated'); return; }
 
       const pdf = new jsPDF('portrait', 'mm', 'a4');
-      const pageW = 210, pageH = 297, margin = 15, gap = 10, rowGap = 8;
-      const usableW = pageW - margin * 2;
+      const pageW = 210, pageH = 297, pdfMargin = 15, gap = 10, rowGap = 8;
+      const usableW = pageW - pdfMargin * 2;
 
-      const pxToMm = 25.4 / 96;
-      const imgWmm = images[0].width * pxToMm;
-      const imgHmm = images[0].height * pxToMm;
+      // Use physical mm dimensions from the image result (computed via effectiveDpi)
+      const imgWmm = images[0].widthMm;
+      const imgHmm = images[0].heightMm;
       const labelH = 5;
 
       const cols = Math.max(1, Math.floor((usableW + gap) / (imgWmm + gap)));
@@ -176,16 +180,16 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       const scaleRatio = cellW / imgWmm;
       const cellH = imgHmm * scaleRatio + labelH;
 
-      let x = margin, y = margin;
+      let x = pdfMargin, y = pdfMargin;
 
       images.forEach((img, i) => {
-        if (y + cellH > pageH - margin) {
+        if (y + cellH > pageH - pdfMargin) {
           pdf.addPage();
-          y = margin;
+          y = pdfMargin;
         }
 
         const col = i % cols;
-        x = margin + col * (cellW + gap);
+        x = pdfMargin + col * (cellW + gap);
 
         pdf.addImage(img.dataUrl, 'PNG', x, y, cellW, imgHmm * scaleRatio);
         pdf.setFontSize(8);
@@ -207,14 +211,14 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
       setIsGenerating(false);
       setProgress(0);
     }
-  }, [values, format, scale]);
+  }, [values, format, scale, widthMils, dpi]);
 
   const isDisabled = isGenerating || !values.trim();
 
   // Expose action functions to parent
   useEffect(() => {
     onActionsReady?.({ downloadAsZip, exportAsPDF, isDisabled, isGenerating });
-  }, [isDisabled, isGenerating, values, format, scale]);
+  }, [isDisabled, isGenerating, values, format, scale, widthMils, dpi]);
 
   return (
     <div className="space-y-6">

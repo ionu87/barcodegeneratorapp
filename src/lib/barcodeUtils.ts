@@ -632,6 +632,29 @@ export function validateInput(text: string, format: BarcodeFormat): ValidationRe
   return { valid: true, message: '' };
 }
 
+/**
+ * Snap a requested X-dimension (in mils) to the nearest achievable whole-pixel
+ * module width for a given DPI.
+ *
+ * Printers can only render whole pixels. This function resolves the physical
+ * reality of a requested module size:
+ *   7.5 mil @ 300 DPI → 2.25 px → rounds to 2 px → actual 6.67 mil (0.169 mm)
+ *   5 mil   @ 300 DPI → 1.5 px  → rounds to 2 px → actual 6.67 mil (0.169 mm)
+ *  10 mil   @ 300 DPI → 3.0 px  → exact   3 px   → actual 10 mil   (0.254 mm)
+ */
+export function snapToPixelGrid(widthMils: number, dpi: number): {
+  modulePixels: number;
+  actualMils: number;
+  actualMm: number;
+  requestedMils: number;
+} {
+  const exactPixels = widthMils * dpi / 1000;
+  const modulePixels = Math.max(1, Math.round(exactPixels));
+  const actualMils = (modulePixels * 1000) / dpi;
+  const actualMm = modulePixels * 25.4 / dpi;
+  return { modulePixels, actualMils, actualMm, requestedMils: widthMils };
+}
+
 export function getDefaultConfig(): BarcodeConfig {
   return {
     format: 'CODE39',

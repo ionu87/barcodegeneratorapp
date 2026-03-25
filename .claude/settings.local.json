@@ -20,7 +20,8 @@
       "Bash(grep:*)",
       "Bash(npx vitest:*)",
       "Bash(wc -l D:/projects/barcodegeneratorapp/src/lib/*.ts D:/projects/barcodegeneratorapp/src/lib/*.tsx)",
-      "Bash(wc -l D:/projects/barcodegeneratorapp/src/components/*.tsx D:/projects/barcodegeneratorapp/src/components/*.ts)"
+      "Bash(wc -l D:/projects/barcodegeneratorapp/src/components/*.tsx D:/projects/barcodegeneratorapp/src/components/*.ts)",
+      "Bash(npm run:*)"
     ]
   }
 }

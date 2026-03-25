@@ -14,9 +14,13 @@ interface ChecksumVariant {
 interface ChecksumPreviewProps {
   variants: ChecksumVariant[];
   inputValue: string;
+  /** X-dimension in mils from the main config (default 7.5). */
+  widthMils?: number;
+  /** Target print DPI from the main config (default 300). */
+  dpi?: number;
 }
 
-function ChecksumBarcodeCard({ name, value }: { name: string; value: string }) {
+function ChecksumBarcodeCard({ name, value, barWidth }: { name: string; value: string; barWidth: number }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -24,7 +28,7 @@ function ChecksumBarcodeCard({ name, value }: { name: string; value: string }) {
     try {
       JsBarcode(svgRef.current, value, {
         format: 'CODE128',
-        width: 1.5,
+        width: barWidth,
         height: 60,
         displayValue: false,
         margin: 5,
@@ -35,7 +39,7 @@ function ChecksumBarcodeCard({ name, value }: { name: string; value: string }) {
     } catch {
       // silent
     }
-  }, [value]);
+  }, [value, barWidth]);
 
   return (
     <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-card/50 border border-border/30">
@@ -50,7 +54,7 @@ function ChecksumBarcodeCard({ name, value }: { name: string; value: string }) {
   );
 }
 
-export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) {
+export function ChecksumPreview({ variants, inputValue, widthMils = 7.5, dpi = 300 }: ChecksumPreviewProps) {
   const applicable = useMemo(
     () => variants.filter(v => v.applicable && v.fullValue !== '-'),
     [variants]
@@ -62,11 +66,16 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
   const escapeHtml = (s: string): string =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+  // Compute bar width from physical config — same formula as the Generate screen
+  const modulePixels = Math.max(1, Math.round(widthMils * dpi / 1000));
+
   const printChecksums = useCallback(() => {
     if (applicable.length === 0) return;
 
     const printWindow = window.open('', '', 'width=800,height=600');
     if (!printWindow) { toast.error('Pop-up blocked. Please allow pop-ups.'); return; }
+
+    const barW = modulePixels;
 
     // Build SVG barcodes in the print window
     const cards = applicable.map(v => `
@@ -82,10 +91,10 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: monospace; padding: 15mm; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
         .cell { display: flex; flex-direction: column; align-items: center; break-inside: avoid; padding: 10px; border: 1px solid #eee; border-radius: 8px; }
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 6px; }
-        .cell svg { max-width: 100%; height: auto; }
+        .cell svg { height: auto; }
         .value { margin-top: 6px; font-size: 13px; font-family: 'Courier New', monospace; color: #000; font-weight: 600; letter-spacing: 0.05em; }
         @media print { body { padding: 10mm; } .cell { break-inside: avoid; } }
       </style></head><body><div class="grid">${cards}</div>
@@ -93,12 +102,12 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
         window.addEventListener('afterprint', function() { window.close(); });
         ${applicable.map(v => {
           const id = `bc-${v.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
-          return `try { JsBarcode("#${id}", "${escapeForJsString(v.fullValue)}", { format: "CODE128", width: 1.5, height: 60, displayValue: false, margin: 5 }); } catch(e) {}`;
+          return `try { JsBarcode("#${id}", "${escapeForJsString(v.fullValue)}", { format: "CODE128", width: ${barW}, height: 60, displayValue: false, margin: 5 }); } catch(e) {}`;
         }).join('\n')}
         setTimeout(function() { window.print(); }, 200);
       <\/script></body></html>`);
     printWindow.document.close();
-  }, [applicable]);
+  }, [applicable, modulePixels]);
 
   if (!inputValue.trim()) {
     return (
@@ -159,7 +168,7 @@ export function ChecksumPreview({ variants, inputValue }: ChecksumPreviewProps) 
           <ScrollArea className="h-[calc(100vh-320px)]">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-5 relative z-10">
               {applicable.map((v) => (
-                <ChecksumBarcodeCard key={v.name} name={v.name} value={v.fullValue} />
+                <ChecksumBarcodeCard key={v.name} name={v.name} value={v.fullValue} barWidth={modulePixels} />
               ))}
             </div>
           </ScrollArea>
