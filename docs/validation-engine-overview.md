@@ -185,11 +185,11 @@ EAN-13, UPC-A, and ITF-14 have intrinsic check digits. ZXing returns the **full 
 
 | Grade | Round-Trip | Bit-Perfect | Checksum | X-Dimension |
 |---|---|---|---|---|
-| **A** | Pass | Pass | any except invalid | ≥ 7.5 mils |
-| **B** | Pass | Pass | any except invalid | < 7.5 mils |
+| **A** | Pass | Pass | valid / intrinsic | ≥ 7.5 mils |
+| **B** | Pass | Pass | valid / intrinsic | < 7.5 mils |
+| **C** | Pass | Pass | n/a or skipped | ≥ 7.5 mils |
+| **D** | Pass | Pass | n/a or skipped | < 7.5 mils |
 | **F** | Fail OR mismatch OR checksum invalid | — | — | — |
-
-Formats without a checksum (`skipped` / `not_applicable`) are not penalised — a scannable barcode with no checksum still qualifies for Grade A/B based solely on X-dimension.
 
 The 7.5 mil threshold (`HEALTHCARE_X_DIM_MILS = 7.5`) is the ISO 15416 / GS1 Healthcare minimum bar X-dimension for clinical scanning equipment.
 
