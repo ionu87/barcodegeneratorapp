@@ -316,7 +316,10 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       }
     }
 
-    // 1D barcode
+    // 1D barcode — render with displayValue using a system font (Courier)
+    // that is always available in isolated SVG contexts (serialized SVG blobs
+    // cannot access page CSS / Google Fonts). crispEdges is applied only to
+    // rect elements by snapSvgToPixels so text retains anti-aliasing.
     const renderText = normalizeForRendering(barcodeText, config.format);
     try {
       const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -329,7 +332,8 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
         lineColor: config.lineColor,
         background: config.background,
         margin: config.margin,
-        font: 'JetBrains Mono',
+        font: 'Courier',
+        textMargin: 2,
       });
       snapSvgToPixels(tempSvg);
 
@@ -365,13 +369,18 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
     const exportCanvas = await renderExportCanvas();
     if (!exportCanvas) { toast.error('Failed to render barcode for download'); return; }
 
+    // When effects are enabled, effects.scale changes pixel count — compensate DPI
+    // so physical size stays correct: more pixels at higher DPI = same mm.
+    const effectiveDpi = effects.enableEffects
+      ? Math.round(config.dpi * effects.scale)
+      : config.dpi;
     const rawUrl = exportCanvas.toDataURL('image/png');
-    const dpiUrl = injectPngDpi(rawUrl, config.dpi);
+    const dpiUrl = injectPngDpi(rawUrl, effectiveDpi);
 
     const modulePixels = Math.max(1, Math.round(config.widthMils * config.dpi / 1000));
     const actualMils = ((modulePixels * 1000) / config.dpi).toFixed(1);
-    const wMm = (exportCanvas.width * 25.4 / config.dpi).toFixed(1);
-    const hMm = (exportCanvas.height * 25.4 / config.dpi).toFixed(1);
+    const wMm = (exportCanvas.width * 25.4 / effectiveDpi).toFixed(1);
+    const hMm = (exportCanvas.height * 25.4 / effectiveDpi).toFixed(1);
 
     const link = document.createElement('a');
     link.download = `barcode-${config.format}-${barcodeText}.png`;
@@ -401,8 +410,11 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
       const exportCanvas = await renderExportCanvas();
       if (!exportCanvas) { toast.error('Failed to render barcode for copy'); return; }
 
-      // Inject 300 DPI pHYs metadata so paste targets see correct physical size
-      const dpiUrl = injectPngDpi(exportCanvas.toDataURL('image/png'), config.dpi);
+      // When effects scale pixels, adjust DPI to preserve physical size
+      const effectiveDpi = effects.enableEffects
+        ? Math.round(config.dpi * effects.scale)
+        : config.dpi;
+      const dpiUrl = injectPngDpi(exportCanvas.toDataURL('image/png'), effectiveDpi);
       const base64 = dpiUrl.substring(dpiUrl.indexOf(',') + 1);
       const raw = atob(base64);
       const bytes = new Uint8Array(raw.length);
@@ -577,7 +589,8 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
           lineColor: config.lineColor,
           background: config.background,
           margin: 0,
-          font: 'JetBrains Mono',
+          font: 'Courier',
+          textMargin: 2,
         });
         snapSvgToPixels(tempSvg);
         const svgData = new XMLSerializer().serializeToString(tempSvg);

@@ -101,7 +101,7 @@ async function render1DToCanvas(
     lineColor: '#000000',
     background: '#FFFFFF',
     margin: margin * scale,
-    font: 'monospace',
+    font: '"JetBrains Mono", monospace',
   });
 
   const svgData = new XMLSerializer().serializeToString(svg);

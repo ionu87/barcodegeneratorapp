@@ -70,7 +70,7 @@ export function BatchPreview({ images, onPrint, onDownloadZip, onExportPDF, isGe
 
           // Draw barcode value text below
           ctx.fillStyle = '#000000';
-          ctx.font = 'bold 14px monospace';
+          ctx.font = 'bold 14px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.fillText(img.value, img.width / 2, img.height + 10);
 
