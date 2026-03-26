@@ -31,7 +31,9 @@
       "Read(//c/Users/ipop/AppData/Local/Temp/**)",
       "Bash(ls -t /tmp/git-error-*)",
       "Read(//c/Users/ipop/**)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(python -c \"from reportlab.lib.units import mm; print\\(f''1mm = {mm} pts''\\); print\\(f''A4: {210*mm:.1f} x {297*mm:.1f} pts''\\)\")",
+      "Bash(python -c \":*)"
     ]
   }
 }

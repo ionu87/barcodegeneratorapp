@@ -26,16 +26,18 @@ const defaultEffects = getDefaultEffectsConfig();
  * bar edges. Applied to the live preview SVG and to fresh SVGs before export.
  */
 function snapSvgToPixels(svg: SVGSVGElement): void {
-  svg.setAttribute('shape-rendering', 'crispEdges');
-
+  // Apply crispEdges only to rect elements (bars), not text
   svg.querySelectorAll('rect').forEach(rect => {
+    rect.setAttribute('shape-rendering', 'crispEdges');
     ['x', 'y', 'width', 'height'].forEach(attr => {
       const val = rect.getAttribute(attr);
       if (val !== null) rect.setAttribute(attr, String(Math.round(parseFloat(val))));
     });
   });
 
+  // Only snap transforms on groups that don't contain text
   svg.querySelectorAll('g[transform]').forEach(g => {
+    if (g.querySelector('text')) return;
     const t = g.getAttribute('transform');
     if (t) {
       g.setAttribute(
