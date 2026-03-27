@@ -412,7 +412,7 @@ export function calculateMod16Checksum(input: string): string {
     }
   }
   
-  const check = sum % 16;
+  const check = (16 - (sum % 16)) % 16;
   return codabarChars[check];
 }
 
@@ -552,7 +552,7 @@ export function calculateMod16JapanChecksum(input: string): string {
     }
   }
   
-  const check = sum % 16;
+  const check = (16 - (sum % 16)) % 16;
   return codabarChars[check];
 }
 

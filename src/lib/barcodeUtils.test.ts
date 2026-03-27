@@ -122,9 +122,9 @@ describe('calculateMod43Checksum', () => {
 // calculateMod16Checksum
 // ---------------------------------------------------------------------------
 describe('calculateMod16Checksum', () => {
-  it('returns "6" for "123"', () => {
-    // codabarChars: 1→1, 2→2, 3→3; sum=6; 6%16=6; chars[6]='6'
-    expect(calculateMod16Checksum('123')).toBe('6');
+  it('returns "-" for "123" (complement: sum=6, (16-6)%16=10, chars[10]="-")', () => {
+    // codabarChars: 1→1, 2→2, 3→3; sum=6; complement=(16-6)%16=10; chars[10]='-'
+    expect(calculateMod16Checksum('123')).toBe('-');
   });
 
   it('returns a character from the Codabar character set', () => {
@@ -134,7 +134,7 @@ describe('calculateMod16Checksum', () => {
   });
 
   it('handles single character', () => {
-    // '0' → index 0, sum=0, 0%16=0 → '0'
+    // '0' → index 0, sum=0, (16-0)%16=0 → '0'
     expect(calculateMod16Checksum('0')).toBe('0');
   });
 });
@@ -737,5 +737,44 @@ describe('applyChecksum mod11A check=10 handling', () => {
   it('codabar + mod11A: appends digit normally when check is not X', () => {
     const result = applyChecksum('12345', 'codabar', 'mod11A');
     expect(result).toBe('123455');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateMod16Checksum — Codabar Modulo 16 (complement, not remainder)
+// ---------------------------------------------------------------------------
+describe('calculateMod16Checksum', () => {
+  it('returns complement, not remainder: "0" has index 0, sum=0, check=(16-0)%16=0 → "0"', () => {
+    expect(calculateMod16Checksum('0')).toBe('0');
+  });
+
+  it('known vector: "A1" — "A" ignored (not in charset), "1" index=1, sum=1, check=(16-1)%16=15 → "+"', () => {
+    expect(calculateMod16Checksum('1')).toBe('+'); // index 15 = '+'
+  });
+
+  it('regression: sum%16===0 produces "0" (complement (16-0)%16=0, not 16)', () => {
+    // 16 chars each with index 0 sums to 0 → check = (16-0)%16 = 0 → '0'
+    expect(calculateMod16Checksum('0000000000000000')).toBe('0');
+  });
+
+  it('regression: complement differs from remainder when sum%16 != 0', () => {
+    // "1" → sum=1. Remainder = 1 → '-'. Complement = 15 → '+'.
+    const result = calculateMod16Checksum('1');
+    expect(result).toBe('+'); // complement
+    expect(result).not.toBe('-'); // not remainder (index 1 = '-')
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateMod16JapanChecksum — same complement formula, extended charset
+// ---------------------------------------------------------------------------
+describe('calculateMod16JapanChecksum', () => {
+  it('uses complement: "1" → sum=1, check=15 → "+" (index 15 in extended charset)', () => {
+    expect(calculateMod16JapanChecksum('1')).toBe('+');
+  });
+
+  it('regression: result differs from raw remainder', () => {
+    const result = calculateMod16JapanChecksum('1');
+    expect(result).not.toBe('-'); // index 1 = '-' (the old incorrect remainder result)
   });
 });

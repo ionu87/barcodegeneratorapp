@@ -38,9 +38,9 @@ interface BatchGeneratorProps {
 }
 
 const SCALE_PRESETS = [
-  { label: 'S', value: 0.5 },
-  { label: 'M', value: 1 },
-  { label: 'L', value: 2 },
+  { label: 'Small', value: 0.5 },
+  { label: 'Medium', value: 1 },
+  { label: 'Large', value: 2 },
 ];
 
 function getFormatLabel(format: BarcodeFormat): string {
@@ -451,9 +451,9 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
             </div>
             <div className="flex gap-2">
               {([
-                { label: 'Small', value: 96 },
-                { label: 'Medium', value: 300 },
-                { label: 'Large', value: 600 },
+                { label: '96', value: 96 },
+                { label: '300', value: 300 },
+                { label: '600', value: 600 },
               ] as const).map((d) => (
                 <Button
                   key={d.value}
@@ -466,7 +466,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
                 </Button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Small = 96 • Medium = 300 • Large = 600 DPI</p>
+            <p className="text-xs text-muted-foreground">96 • 300 • 600 DPI</p>
           </div>
         </div>
 
@@ -583,13 +583,13 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
         <div className="flex gap-2">
           {SCALE_PRESETS.map((p) => (
             <Button
-              key={p.label}
+              key={p.value}
               variant={scale === p.value ? 'default' : 'outline'}
               size="sm"
               onClick={() => setScale(p.value)}
               className="flex-1"
             >
-              {p.label} {p.value}x
+              {p.label}
             </Button>
           ))}
         </div>
@@ -599,7 +599,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
             max={4}
             step={0.25}
             value={[scale]}
-            onValueChange={([v]) => setScale(v)}
+            onValueChange={([v]) => setScale(+(v.toFixed(2)))}
           />
           <p className="text-xs text-muted-foreground text-center">Custom: {scale}x</p>
         </div>

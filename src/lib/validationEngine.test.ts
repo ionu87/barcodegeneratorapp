@@ -230,10 +230,10 @@ describe('CODE 39 optional Mod 43', () => {
 // ===========================================================================
 
 describe('Codabar optional Mod 16', () => {
-  // "1234" → char indices 1,2,3,4 → sum=10 → codabarChars[10]='-'
-  // codabarChars = '0123456789-$:/.+'  (index 10 = '-')
-  const bodyWithCheck  = '1234-';
-  const bodyWrongCheck = '1234+';
+  // "1234" → char indices 1,2,3,4 → sum=10 → complement=(16-10)%16=6 → codabarChars[6]='6'
+  // codabarChars = '0123456789-$:/.+'  (index 6 = '6')
+  const bodyWithCheck  = '12346';
+  const bodyWrongCheck = '1234-';  // '-' was the old (buggy) remainder result
 
   it('value ends with correct Mod 16 check → valid', () => {
     const r = validator.validate(bodyWithCheck, 'codabar', 'mod16');
