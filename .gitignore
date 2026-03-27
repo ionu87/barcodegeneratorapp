@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 nul
+
+# Electron build output
+dist_electron/
+
+# Local barcode export scratch folder
+pdf creator/
