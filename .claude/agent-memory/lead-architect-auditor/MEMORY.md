@@ -5,11 +5,11 @@
 - [project_audit_2026_03_24.md](./project_audit_2026_03_24.md) — Full architectural audit: 4 blockers (switch routing, XSS, race condition, memory leak), 9 debt, 3 test gaps. STATUS: REJECTED.
 - [project_audit_2026_03_26.md](./project_audit_2026_03_26.md) — Registry & validation audit: 0 blockers, 7 debt, 2 test gaps. All 4 previous blockers resolved. STATUS: APPROVED.
 
-## 2026-03-27 Session State
+## 2026-03-27 Session State (COMPLETE)
 
-- [project_audit_history.md](./project_audit_history.md) — Complete trail of all Phase 1 DEBT/CR findings (all resolved), Phase 2 decomposition results, Phase 3 status. Test count: 370 → 402 → 418.
-- [project_remaining_debt.md](./project_remaining_debt.md) — Three deferred items post-Phase 3: print path IPC audit, PixelEffectsProcessor unification, BarcodePreview JSX split.
-- [project_architecture_decisions.md](./project_architecture_decisions.md) — Six binding architectural decisions: grade contraction, snapshot gate for renderer extraction, print path IPC deferral, effects/generator separation, MSI format additions, electron.d.ts authority.
+- [project_audit_history.md](./project_audit_history.md) — Complete trail of all Phase 1 DEBT/CR findings (all resolved), Phase 2 decomposition (useCertification + BarcodeExportActions), Phase 3 (useBarcodeRenderer extraction, BarcodePreview 865→509 lines), and SVG export implementation. Final test count: 370 → 433 (+63).
+- [project_remaining_debt.md](./project_remaining_debt.md) — Four deferred items post-session: (1) usePrintBarcode extraction blocked on Electron IPC audit, (2) PixelEffectsProcessor unification, (3) BarcodePreview JSX cosmetic split (low priority), (4) SVG export for Electron print path (blocked same as item 1).
+- [project_architecture_decisions.md](./project_architecture_decisions.md) — Ten binding architectural decisions: grade contraction (AD-1), snapshot gate (AD-2), print IPC deferral (AD-3), effects/generator separation (AD-4), MSI format additions (AD-5), electron.d.ts authority (AD-6), applyEffects co-location (AD-7), canvasRef return contract (AD-8), SVG export routing table (AD-9), SVG functions no-effects contract (AD-10).
 
 ## Algorithm Verification
 

@@ -1,6 +1,6 @@
 ---
 name: project_audit_history
-description: Complete audit trail for the 2026-03-27 session — all Phase 1 DEBT/CR findings resolved, Phase 2 decomposition complete, Phase 3 in progress. Includes test count progression.
+description: Complete audit trail for the 2026-03-27 session — all Phase 1 DEBT/CR findings resolved, Phase 2 decomposition complete, Phase 3 complete, SVG export implemented. Final test count: 433.
 type: project
 ---
 
@@ -80,17 +80,110 @@ BarcodePreview.tsx was decomposed by extracting two units with no logic disrupti
 
 ---
 
-## Phase 3 — `useBarcodeRenderer` Extraction (IN PROGRESS as of 2026-03-27)
+## Phase 3 — `useBarcodeRenderer` Extraction (COMPLETED 2026-03-27)
 
-### Objective
-Extract the render pipeline from `BarcodePreview.tsx` into `src/hooks/useBarcodeRenderer.ts`.
+### What Was Extracted to `src/hooks/useBarcodeRenderer.ts`
 
-### Prerequisite Gate
-Pixel-output snapshot tests for `applyEffects` and `renderExportCanvas` MUST be written and passing before extraction begins. The stale-closure coupling between these two functions is undetectable by logic tests — only pixel-level regression tests can confirm the extraction didn't break the effects pipeline.
+Ownership transferred from `BarcodePreview.tsx`:
+- **State:** `barcodeDataUrl`, `renderError`, `is2D`, `barcodeText`, `modulePixels`, `qualityBlur`
+- **Refs:** `svgRef`, `barcodeCanvasRef`, `canvasRef`
+- **Effects:** Both render `useEffect` blocks (1D JsBarcode path and 2D bwip-js path)
+- **Functions:** `applyEffects`, `renderExportCanvas`
+- **Memos:** All derived `useMemo` values (dimensions, scale, etc.)
 
-### Critical Constraints
-1. `applyEffects` and `renderExportCanvas` MUST remain co-located inside the hook (not split across files) — they share canvas state that would create a stale closure if separated.
-2. `canvasRef` (the scratch canvas used for print) must be **explicitly returned** from the hook to the component — it cannot be an internal implementation detail or the print path loses its DOM reference.
-3. The hook must not import from `barcodeImageGenerator.ts` — that module is consumed by BatchGenerator and ValidationService and must remain headless.
+### Critical Constraints Honored
 
-**Why:** See `project_architecture_decisions.md` for the full rationale on all three constraints.
+1. **`applyEffects` and `renderExportCanvas` co-located in the hook** — stale closure safety. If split into separate files, PNG exports would silently use stale effects values because they share canvas state through closure. These two functions must never be separated across files.
+2. **`canvasRef` explicitly returned from hook** — this is the scratch canvas used by `printBarcode()` in the Electron path. It cannot be an internal implementation detail — the component must hold the DOM reference for the print flow.
+3. **Hook does not import `barcodeImageGenerator.ts`** — that module is headless and consumed by BatchGenerator and ValidationService. See AD-4.
+
+### Line Count Progression
+
+| Point | Lines | Delta |
+|-------|-------|-------|
+| Session start | 865 | — |
+| After Phase 2 | 737 | −128 |
+| After Phase 3 | 509 | −228 |
+| **Total reduction** | — | **−356** |
+
+### Test Files Added in Phase 3
+
+| File | Status | Test Count |
+|------|--------|------------|
+| `src/hooks/useBarcodeRenderer.test.ts` | NEW | safety-net tests for hook interface |
+| `src/hooks/applyEffects.test.ts` | NEW | snapshot/pixel regression tests for effects pipeline |
+
+**Test count after Phase 3:** 418 → **424**
+
+---
+
+## SVG Export Implementation (COMPLETED 2026-03-27)
+
+### Requirement
+"Export and print functionalities must use SVG to export barcodes at real world dimensions everywhere in the application."
+
+### New Functions in `src/lib/barcodeImageGenerator.ts`
+
+**`generateBarcodeSVGString(value, format, widthMils, dpi, height, margin, displayValue, fontSize, lineColor, background)`**
+- Renders JsBarcode to an in-memory SVG element
+- Reads pixel dimensions from rendered SVG
+- Sets `width="Xmm"` and `height="Ymm"` attributes — physical dimensions = `svgPixelDim × 25.4 / dpi`
+- Adds `viewBox` for scaling correctness
+- Returns `{ svgString, widthMm, heightMm } | null`
+- Returns `null` for 2D formats (bwip-js has no SVG output path)
+
+**`generateBarcodeSVGBlob(value, format, widthMils, dpi, height, margin)`**
+- Wraps `generateBarcodeSVGString`
+- Returns `Blob` with `image/svg+xml` MIME type for ZIP packaging
+- Synchronous — no canvas involvement
+
+### Export Routing Table (Binding)
+
+| Context | Format | Effects On | Output |
+|---------|--------|------------|--------|
+| Download | 1D | No | `.svg` file with physical mm dimensions |
+| Download | 1D | Yes | `.png` (effects are raster — cannot apply to SVG) |
+| Download | 2D | Either | `.png` (bwip-js has no SVG output) |
+| Browser print | 1D | Any | SVG embedded inline in print window HTML (`openSvgPrintWindow`), `width/height` in CSS mm |
+| Electron print | 1D | Any | PNG (IPC `printBarcode` handler expects PNG data URL — not changed pending IPC audit) |
+| Electron/Browser print | 2D | Any | PNG canvas (unchanged) |
+| ZIP batch export | 1D | — | `${val}.svg` via `generateBarcodeSVGBlob` |
+| ZIP batch export | 2D | — | `${val}.png` via `generateBarcodeBlob` (unchanged) |
+| Clipboard | Any | Any | PNG (Web Clipboard API does not support SVG across browsers) |
+| PDF export | Any | Any | PNG (jsPDF has no SVG rendering support) |
+
+### Files Changed for SVG Export
+
+- `src/lib/barcodeImageGenerator.ts` — two new functions
+- `src/components/BarcodePreview.tsx` — `downloadBarcode()` routing, `printBarcode()` 1D browser path uses inline SVG
+- `src/components/BatchGenerator.tsx` — ZIP path routes 1D → SVG, 2D → PNG; added `is2DBarcode` and `generateBarcodeSVGBlob` imports
+
+### New Tests in `src/lib/barcodeImageGenerator.test.ts`
+
+- `generateBarcodeSVGString`: 6 tests (null for 2D, null for invalid, returns correct shape, mm dims in SVG attrs, viewBox present, math correctness)
+- `generateBarcodeSVGBlob`: 3 tests (null for 2D, null for invalid, correct MIME type)
+
+**Test count after SVG export:** 424 → **433**
+
+---
+
+## Session Summary
+
+| Metric | Value |
+|--------|-------|
+| Test count start | 370 |
+| Test count end | **433** |
+| Net new tests | +63 |
+| BarcodePreview.tsx start | 865 lines |
+| BarcodePreview.tsx end | **509 lines** |
+| Net line reduction | −356 |
+| Total todos completed | 31 |
+
+### All 31 Todos by Category
+
+- **9 DEBT fixes:** OPTIONAL_REGISTRY gap, MSI formats, ISO grade type contraction, isNumericOnly, unescape(), canvas leak, useEffect deps, Electron typing, batchIdCounter
+- **5 TEST-GAP fills:** validationRunner, Japan NW7 checksums, Mod11A vectors, applyChecksum EAN/UPC, UPCE random
+- **3 NIT fixes:** getBwipFormat no-op, batchIdCounter→UUID, let→const
+- **9 code reviewer bug fixes:** clipboard rejection, height param, PDF dimensions, stale closure, img.onerror, canvas null guard, and 3 others
+- **5 DEBT-7 decomposition tasks:** useCertification, BarcodeExportActions, useBarcodeRenderer, dead state removal, safety-net tests
+- **SVG export implementation** (user-added constraint, fully delivered)

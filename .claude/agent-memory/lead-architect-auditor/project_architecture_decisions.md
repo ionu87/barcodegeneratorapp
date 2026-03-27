@@ -87,3 +87,60 @@ The correct long-term solution is a `RenderPipeline` abstraction (see `project_r
 **Enforcement:** Any new IPC method added to the preload bridge must have a corresponding entry in `ElectronAPI` in `src/types/electron.d.ts` before the renderer-side call is written. IPC additions without type declarations are a [BLOCKER].
 
 **Date:** 2026-03-27
+
+---
+
+## AD-7: `applyEffects` and `renderExportCanvas` Must Be Co-Located in `useBarcodeRenderer`
+
+**Decision:** `applyEffects` and `renderExportCanvas` must remain co-located inside `src/hooks/useBarcodeRenderer.ts`. They must not be split into separate files, modules, or hooks, even if the hook grows large.
+
+**Rationale:** Both functions operate on the same canvas reference through shared closure state. `applyEffects` reads from and writes to the canvas that `renderExportCanvas` produced. A split into separate files — even if logically correct — introduces a stale-closure bug: if either function captures the canvas ref at a different time than the other, PNG exports will silently render with wrong (stale) effect state. This failure mode is invisible to unit tests that test logic rather than pixel output. Only snapshot tests comparing actual canvas output before and after can detect it.
+
+**Consequence:** Future reviewers must not refactor these functions apart without a full pixel-regression test suite in place.
+
+**Date:** 2026-03-27
+
+---
+
+## AD-8: `canvasRef` Must Be Returned from `useBarcodeRenderer`
+
+**Decision:** The `canvasRef` managed by `useBarcodeRenderer` must be explicitly included in the hook's return value. It must not be treated as an internal implementation detail.
+
+**Rationale:** `canvasRef` is the scratch canvas used by `printBarcode()` in `BarcodePreview.tsx` for the Electron print path (rasterizes SVG → canvas → PNG for the IPC handler). The component must hold a direct DOM reference to this canvas for the print flow to function. If the ref is internal to the hook and not returned, the Electron print path breaks silently — no error, just a blank print.
+
+**Date:** 2026-03-27
+
+---
+
+## AD-9: SVG Export Routing — Binding Format/Context Decisions
+
+**Decision:** The following routing table governs output format for all export and print operations. It is binding. Any deviation requires re-audit.
+
+| Context | Format | Effects On | Output | Rationale |
+|---------|--------|------------|--------|-----------|
+| Download | 1D | No | `.svg` with mm dimensions | Full vector fidelity at physical size |
+| Download | 1D | Yes | `.png` | Effects are raster pixel operations; SVG cannot carry them |
+| Download | 2D | Either | `.png` | bwip-js has no SVG output path |
+| Browser print | 1D | Any | Inline SVG in print window | Vector quality to printer via `openSvgPrintWindow` helper |
+| Electron print | 1D | Any | PNG via IPC | IPC `printBarcode` handler expects PNG data URL; not changed pending formal IPC audit |
+| Electron/Browser print | 2D | Any | PNG canvas | bwip-js has no SVG output path |
+| ZIP batch export | 1D | — | `${val}.svg` blob | Physical-dimension SVG files in archive |
+| ZIP batch export | 2D | — | `${val}.png` blob | Unchanged from pre-SVG implementation |
+| Clipboard | Any | Any | PNG | Web Clipboard API does not support SVG across browsers |
+| PDF export | Any | Any | PNG | jsPDF has no SVG rendering support |
+
+**New functions introduced:** `generateBarcodeSVGString()` and `generateBarcodeSVGBlob()` in `src/lib/barcodeImageGenerator.ts`.
+
+**Date:** 2026-03-27
+
+---
+
+## AD-10: `barcodeImageGenerator.ts` SVG Functions Must Not Accept Effects Parameters
+
+**Decision:** `generateBarcodeSVGString` and `generateBarcodeSVGBlob` must not accept effects parameters, effects configuration objects, or any reference to the `ImageEffects` system.
+
+**Rationale:** Extends AD-4. SVG output is vector — it fundamentally cannot carry raster pixel effects. Adding an effects parameter would be a false interface that either silently discards effects or throws at runtime for SVG callers. The function signature enforcing this constraint also keeps `barcodeImageGenerator.ts` effects-free as required by AD-4.
+
+**Enforcement:** Any PR that adds an effects parameter to either function is a [BLOCKER] — it violates both the SVG/raster boundary and the headless-renderer contract.
+
+**Date:** 2026-03-27
