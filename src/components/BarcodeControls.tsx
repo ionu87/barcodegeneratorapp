@@ -225,9 +225,8 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Bar Width (X-dim)</Label>
-              <span className="font-mono text-primary font-medium">{snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-1">
+            <div className="grid grid-cols-2 gap-2 mb-4">
               {(() => {
                 const presets = [5, 7.5];
                 // When multiple presets snap to the same pixel count (e.g. 5 & 7.5 → 2px at 300 DPI),
@@ -253,20 +252,35 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
                           : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
                       }`}
                     >
-                      {mil} mil → {snapped.modulePixels} px
+                      {snapped.actualMils.toFixed(2)} mil → {snapped.modulePixels} px
                     </button>
                   );
                 });
               })()}
             </div>
-            <Slider
-              value={[config.widthMils]}
-              onValueChange={([value]) => setSnappedMils(value)}
-              min={4}
-              max={40}
-              step={0.5}
-              className="w-full"
-            />
+            {(() => {
+              const thumbPercent = ((config.widthMils - 4) / (40 - 4)) * 100;
+              return (
+                <div className="relative pt-7">
+                  <div
+                    className="absolute top-0 -translate-x-1/2 pointer-events-none"
+                    style={{ left: `${thumbPercent}%`, marginLeft: `${10 - thumbPercent * 0.2}px` }}
+                  >
+                    <span className="text-xs font-mono bg-primary text-primary-foreground px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">
+                      {snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)
+                    </span>
+                  </div>
+                  <Slider
+                    value={[config.widthMils]}
+                    onValueChange={([value]) => setSnappedMils(value)}
+                    min={4}
+                    max={40}
+                    step={0.5}
+                    className="w-full"
+                  />
+                </div>
+              );
+            })()}
           </div>
 
           <div className="space-y-3">

@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
-import { Shuffle, Maximize2, Plus, Trash2, Package } from 'lucide-react';
+import { Shuffle, Maximize2, Plus, Trash2, Package, Ruler } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DEFAULTS = getDefaultConfig();
@@ -115,6 +115,14 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
   const [isAdding, setIsAdding] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const snap = snapToPixelGrid(widthMils, dpi);
+
+  const setSnappedMils = (mils: number, overrideDpi = dpi) => {
+    const { actualMils } = snapToPixelGrid(mils, overrideDpi);
+    setWidthMils(+actualMils.toFixed(2));
+    if (overrideDpi !== dpi) setDpi(overrideDpi);
+  };
+
   const applicableChecksums = getApplicableChecksums(format);
 
   useEffect(() => { setChecksumType('none'); }, [format]);
@@ -124,6 +132,32 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
     const allImages = batches.flatMap(b => b.images);
     onImagesGenerated?.(allImages);
   }, [batches, onImagesGenerated]);
+
+  // Re-render all batch images when output settings change
+  const batchesRef = useRef(batches);
+  batchesRef.current = batches;
+  useEffect(() => {
+    if (batchesRef.current.length === 0) return;
+    let cancelled = false;
+
+    (async () => {
+      const updated: CommittedBatch[] = [];
+      for (const batch of batchesRef.current) {
+        const images: BarcodeImageResult[] = [];
+        for (const val of batch.values) {
+          const processed = applyChecksum(val, batch.format, batch.checksumType);
+          const result = await generateBarcodeImage(processed, batch.format, scale, margin, widthMils, dpi, height);
+          if (result) {
+            images.push({ ...result, formatLabel: batch.formatLabel, checksumLabel: batch.checksumLabel });
+          }
+        }
+        updated.push({ ...batch, images });
+      }
+      if (!cancelled) setBatches(updated);
+    })();
+
+    return () => { cancelled = true; };
+  }, [scale, widthMils, dpi, height, margin]);
 
   const generateRandomValues = () => {
     const vals = generateRandomForFormat(format, count, stringLength);
@@ -365,6 +399,99 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
             </SelectContent>
           </Select>
         )}
+
+        {/* Dimensions */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Ruler className="h-4 w-4 text-muted-foreground" />
+            <Label>Dimensions</Label>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <Label className="text-muted-foreground">Bar Width (X-dim)</Label>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {(() => {
+                const presets = [5, 7.5];
+                const snappedPresets = presets.map(mil => ({ mil, snap: snapToPixelGrid(mil, dpi) }));
+                const matching = snappedPresets.filter(p => p.snap.modulePixels === snap.modulePixels);
+                const closestMil = matching.length > 1
+                  ? matching.reduce((a, b) => Math.abs(a.mil - snap.actualMils) <= Math.abs(b.mil - snap.actualMils) ? a : b).mil
+                  : null;
+
+                return presets.map((mil) => {
+                  const snapped = snapToPixelGrid(mil, dpi);
+                  const isActive = snap.modulePixels === snapped.modulePixels
+                    && (closestMil === null || mil === closestMil);
+                  return (
+                    <button
+                      key={mil}
+                      type="button"
+                      onClick={() => setSnappedMils(mil)}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-lg'
+                          : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      {snapped.actualMils.toFixed(2)} mil → {snapped.modulePixels} px
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+            {(() => {
+              const thumbPercent = ((widthMils - 4) / (40 - 4)) * 100;
+              return (
+                <div className="relative pt-7">
+                  <div
+                    className="absolute top-0 -translate-x-1/2 pointer-events-none"
+                    style={{ left: `${thumbPercent}%`, marginLeft: `${10 - thumbPercent * 0.2}px` }}
+                  >
+                    <span className="text-xs font-mono bg-primary text-primary-foreground px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">
+                      {snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)
+                    </span>
+                  </div>
+                  <Slider
+                    value={[widthMils]}
+                    onValueChange={([value]) => setSnappedMils(value)}
+                    min={4}
+                    max={40}
+                    step={0.5}
+                    className="w-full"
+                  />
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <Label className="text-muted-foreground">Print DPI</Label>
+              <span className="font-mono text-primary font-medium">
+                {dpi} → {snap.actualMm.toFixed(3)} mm/bar
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {([96, 300, 600] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setSnappedMils(widthMils, d)}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    dpi === d
+                      ? 'bg-primary text-primary-foreground shadow-lg'
+                      : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">96 = screen • 300 = laser • 600 = hi-res</p>
+          </div>
+        </div>
 
         {/* Random Generator */}
         <div className="p-3 bg-secondary/50 rounded-lg space-y-3">

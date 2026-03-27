@@ -733,7 +733,10 @@ export function BarcodePreview({ config, effects = defaultEffects, isValid, erro
             <div>
               <span className="text-muted-foreground block text-xs font-semibold mb-1">Bar Width (X-dim)</span>
               <span className="font-mono text-primary">
-                {snap.requestedMils.toFixed(2)} → {snap.actualMils.toFixed(2)} mil
+                {snap.requestedMils.toFixed(2) !== snap.actualMils.toFixed(2)
+                  ? `${snap.requestedMils.toFixed(2)} → ${snap.actualMils.toFixed(2)} mil`
+                  : `${snap.actualMils.toFixed(2)} mil`
+                }
               </span>
               <span className="text-muted-foreground text-xs block mt-0.5">
                 ({snap.modulePixels} px @ {config.dpi} DPI)
