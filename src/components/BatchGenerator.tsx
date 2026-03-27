@@ -116,6 +116,7 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
   const [progress, setProgress] = useState(0);
 
   const snap = snapToPixelGrid(widthMils, dpi);
+  const [activePreset, setActivePreset] = useState<number | null>(null);
 
   const setSnappedMils = (mils: number, overrideDpi = dpi) => {
     const { actualMils } = snapToPixelGrid(mils, overrideDpi);
@@ -411,85 +412,61 @@ export function BatchGenerator({ onImagesGenerated, onActionsReady }: BatchGener
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Bar Width (X-dim)</Label>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {(() => {
-                const presets = [5, 7.5];
-                const snappedPresets = presets.map(mil => ({ mil, snap: snapToPixelGrid(mil, dpi) }));
-                const matching = snappedPresets.filter(p => p.snap.modulePixels === snap.modulePixels);
-                const closestMil = matching.length > 1
-                  ? matching.reduce((a, b) => Math.abs(a.mil - snap.actualMils) <= Math.abs(b.mil - snap.actualMils) ? a : b).mil
-                  : null;
-
-                return presets.map((mil) => {
-                  const snapped = snapToPixelGrid(mil, dpi);
-                  const isActive = snap.modulePixels === snapped.modulePixels
-                    && (closestMil === null || mil === closestMil);
-                  return (
-                    <button
-                      key={mil}
-                      type="button"
-                      onClick={() => setSnappedMils(mil)}
-                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-lg'
-                          : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
-                      }`}
-                    >
-                      {snapped.actualMils.toFixed(2)} mil → {snapped.modulePixels} px
-                    </button>
-                  );
-                });
-              })()}
-            </div>
             {(() => {
-              const thumbPercent = ((widthMils - 4) / (40 - 4)) * 100;
+              const snapped = snapToPixelGrid(7.5, dpi);
+              const isActive = activePreset === 7.5
+                || (activePreset === null && snap.modulePixels === snapped.modulePixels);
               return (
-                <div className="relative pt-7">
-                  <div
-                    className="absolute top-0 -translate-x-1/2 pointer-events-none"
-                    style={{ left: `${thumbPercent}%`, marginLeft: `${10 - thumbPercent * 0.2}px` }}
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setActivePreset(7.5); setSnappedMils(7.5); }}
+                    className={`w-full px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
                   >
-                    <span className="text-xs font-mono bg-primary text-primary-foreground px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">
-                      {snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)
-                    </span>
-                  </div>
-                  <Slider
-                    value={[widthMils]}
-                    onValueChange={([value]) => setSnappedMils(value)}
-                    min={4}
-                    max={40}
-                    step={0.5}
-                    className="w-full"
-                  />
+                    {snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)
+                  </button>
                 </div>
               );
             })()}
+            <Slider
+              value={[widthMils]}
+              onValueChange={([value]) => { setActivePreset(null); setSnappedMils(value); }}
+              min={4}
+              max={40}
+              step={0.5}
+              className="w-full"
+            />
           </div>
 
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Print DPI</Label>
-              <span className="font-mono text-primary font-medium">
+              <span className="font-mono text-muted-foreground font-medium">
                 {dpi} → {snap.actualMm.toFixed(3)} mm/bar
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {([96, 300, 600] as const).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setSnappedMils(widthMils, d)}
-                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    dpi === d
-                      ? 'bg-primary text-primary-foreground shadow-lg'
-                      : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}
+            <div className="flex gap-2">
+              {([
+                { label: 'Small', value: 96 },
+                { label: 'Medium', value: 300 },
+                { label: 'Large', value: 600 },
+              ] as const).map((d) => (
+                <Button
+                  key={d.value}
+                  variant={dpi === d.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSnappedMils(widthMils, d.value)}
+                  className="flex-1"
                 >
-                  {d}
-                </button>
+                  {d.label}
+                </Button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">96 = screen • 300 = laser • 600 = hi-res</p>
+            <p className="text-xs text-muted-foreground">Small = 96 • Medium = 300 • Large = 600 DPI</p>
           </div>
         </div>
 

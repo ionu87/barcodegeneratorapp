@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BarcodeConfig, BarcodeFormat, BARCODE_FORMATS, ChecksumType, getApplicableChecksums, getDefaultConfig, QualityLevel, snapToPixelGrid } from '@/lib/barcodeUtils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
 
   const defaults = getDefaultConfig();
   const snap = snapToPixelGrid(config.widthMils, config.dpi);
+  const [activePreset, setActivePreset] = useState<number | null>(null);
 
   // Auto-snap widthMils to nearest achievable pixel value.
   // Printers can only render integer pixels, so 7.5 mil @ 300 DPI (2.25 px)
@@ -226,67 +228,40 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Bar Width (X-dim)</Label>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {(() => {
-                const presets = [5, 7.5];
-                // When multiple presets snap to the same pixel count (e.g. 5 & 7.5 → 2px at 300 DPI),
-                // only highlight the one closest to the actual snapped mils value.
-                const snappedPresets = presets.map(mil => ({ mil, snap: snapToPixelGrid(mil, config.dpi) }));
-                const matching = snappedPresets.filter(p => p.snap.modulePixels === snap.modulePixels);
-                const closestMil = matching.length > 1
-                  ? matching.reduce((a, b) => Math.abs(a.mil - snap.actualMils) <= Math.abs(b.mil - snap.actualMils) ? a : b).mil
-                  : null;
-
-                return presets.map((mil) => {
-                  const snapped = snapToPixelGrid(mil, config.dpi);
-                  const isActive = snap.modulePixels === snapped.modulePixels
-                    && (closestMil === null || mil === closestMil);
-                  return (
-                    <button
-                      key={mil}
-                      type="button"
-                      onClick={() => setSnappedMils(mil)}
-                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-lg'
-                          : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
-                      }`}
-                    >
-                      {snapped.actualMils.toFixed(2)} mil → {snapped.modulePixels} px
-                    </button>
-                  );
-                });
-              })()}
-            </div>
             {(() => {
-              const thumbPercent = ((config.widthMils - 4) / (40 - 4)) * 100;
+              const snapped = snapToPixelGrid(7.5, config.dpi);
+              const isActive = activePreset === 7.5
+                || (activePreset === null && snap.modulePixels === snapped.modulePixels);
               return (
-                <div className="relative pt-7">
-                  <div
-                    className="absolute top-0 -translate-x-1/2 pointer-events-none"
-                    style={{ left: `${thumbPercent}%`, marginLeft: `${10 - thumbPercent * 0.2}px` }}
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setActivePreset(7.5); setSnappedMils(7.5); }}
+                    className={`w-full px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
                   >
-                    <span className="text-xs font-mono bg-primary text-primary-foreground px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">
-                      {snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)
-                    </span>
-                  </div>
-                  <Slider
-                    value={[config.widthMils]}
-                    onValueChange={([value]) => setSnappedMils(value)}
-                    min={4}
-                    max={40}
-                    step={0.5}
-                    className="w-full"
-                  />
+                    {snap.actualMils.toFixed(2)} mil ({snap.modulePixels} px)
+                  </button>
                 </div>
               );
             })()}
+            <Slider
+              value={[config.widthMils]}
+              onValueChange={([value]) => { setActivePreset(null); setSnappedMils(value); }}
+              min={4}
+              max={40}
+              step={0.5}
+              className="w-full"
+            />
           </div>
 
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Print DPI</Label>
-              <span className="font-mono text-primary font-medium">
+              <span className="font-mono text-muted-foreground font-medium">
                 {config.dpi} → {snap.actualMm.toFixed(3)} mm/bar
               </span>
             </div>
@@ -312,7 +287,7 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Height</Label>
-              <span className="font-mono text-primary font-medium">{pxToMm(config.height, config.dpi).toFixed(1)}mm</span>
+              <span className="font-mono text-muted-foreground font-medium">{pxToMm(config.height, config.dpi).toFixed(1)}mm</span>
             </div>
             <Slider
               value={[config.height]}
@@ -327,7 +302,7 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Margin</Label>
-              <span className="font-mono text-primary font-medium">{pxToMm(config.margin, config.dpi).toFixed(1)}mm</span>
+              <span className="font-mono text-muted-foreground font-medium">{pxToMm(config.margin, config.dpi).toFixed(1)}mm</span>
             </div>
             <Slider
               value={[config.margin]}
@@ -342,7 +317,7 @@ export function BarcodeControls({ config, onChange, isValid, errorMessage }: Bar
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <Label className="text-muted-foreground">Font Size</Label>
-              <span className="font-mono text-primary font-medium">{pxToMm(config.fontSize, config.dpi).toFixed(1)}mm</span>
+              <span className="font-mono text-muted-foreground font-medium">{pxToMm(config.fontSize, config.dpi).toFixed(1)}mm</span>
             </div>
             <Slider
               value={[config.fontSize]}
