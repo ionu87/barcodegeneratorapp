@@ -101,7 +101,11 @@ Rows and columns are **1-based** (e.g., `remove 2 1` removes row 2 from column 1
 | `save` | Save the current layout to `layout.json` without generating the PDF |
 | `borders` | Toggle rectangle borders on/off (type `generate` to apply) |
 
-> **Note:** If `label_sheet.pdf` is open in a viewer, close it before running `generate` or it will fail with a permission error.
+#### Generating a New PDF
+
+- To **create a new PDF from scratch**, delete or move the existing `label_sheet.pdf` before running `generate`. Otherwise, `generate` will overwrite the file in place with the current layout.
+- **If no images are placed in the layout, the PDF cannot be generated.** You must add at least one image (via `auto` or `add`) before `generate` will produce any output.
+- If `label_sheet.pdf` is open in a viewer, **close it first** — `generate` will fail with a permission error if the file is locked.
 
 ### PDF Editing (requires pymupdf)
 
