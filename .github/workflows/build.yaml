@@ -1,7 +1,7 @@
 name: Build Desktop App
 
 on: 
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
   build:
