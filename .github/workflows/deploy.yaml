@@ -7,11 +7,16 @@ on:
 
 permissions:
   contents: read
-  pages: write      # Required for direct hosting
-  id-token: write   # Required for security handshake
+  pages: write      # Required
+  id-token: write   # Required
 
 jobs:
   deploy:
+    # This block is the missing link that triggers the UI update
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -20,7 +25,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # Updated to Node 22 for 2026 compatibility
 
       - name: Install dependencies
         run: npm install
@@ -31,7 +36,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist # Ensure this is where your 'npm run build' puts files!
+          path: ./dist
 
       - name: Deploy to GitHub Pages
         id: deployment
