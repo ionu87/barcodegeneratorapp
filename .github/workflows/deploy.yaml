@@ -7,8 +7,8 @@ on:
 
 permissions:
   contents: read
-  pages: write      # Crucial: Gives permission to host the site
-  id-token: write   # Crucial: Required for the internal handshake
+  pages: write      # Required for direct hosting
+  id-token: write   # Required for security handshake
 
 jobs:
   deploy:
@@ -31,7 +31,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist # Make sure this matches your build folder!
+          path: ./dist # Ensure this is where your 'npm run build' puts files!
 
       - name: Deploy to GitHub Pages
         id: deployment
